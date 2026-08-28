@@ -2,7 +2,7 @@
 /**
  * Turns the artwork in assets/ into what macOS wants:
  *
- *   npm run icon                    # assets/icon.svg  -> build/icon.icns
+ *   npm run icon                    # assets/icon.svg  -> build/icon.icns, assets/icon-256.png
  *   npm run icon:tray               # assets/tray.svg  -> electron/assets/trayTemplate.png
  *   npm run icon -- some/file.svg   # try one without installing it
  *
@@ -113,6 +113,10 @@ async function buildIcns() {
     fs.rmSync(file);
   }
   for (const [name, size] of ICONSET) fs.writeFileSync(path.join(iconset, name), rendered.get(size));
+
+  // The README shows the icon, and a PNG straight from the source keeps it
+  // honest: pulling one back out of the .icns crops the shadow padding.
+  fs.writeFileSync(path.join(ROOT, "assets", "icon-256.png"), rendered.get(256));
 
   const icns = path.join(BUILD, "icon.icns");
   execFileSync("iconutil", ["-c", "icns", iconset, "-o", icns]);
