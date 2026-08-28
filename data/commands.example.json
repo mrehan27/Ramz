@@ -1,0 +1,167 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "ff173ccc-a0c2-4bff-901d-28eec879609c",
+      "kind": "alias",
+      "name": "gcm",
+      "title": "Checkout main",
+      "description": "Switch to the main branch",
+      "tags": [
+        "git"
+      ],
+      "command": "git checkout main",
+      "params": [],
+      "steps": [],
+      "exported": true,
+      "createdAt": "2026-08-24T09:47:23.698394Z",
+      "updatedAt": "2026-08-24T09:51:04.911Z"
+    },
+    {
+      "id": "5f1b5444-e7ff-4735-88bd-dab641f13825",
+      "kind": "alias",
+      "name": "gwip",
+      "title": "WIP commit",
+      "description": "Stage everything and commit as wip",
+      "tags": [
+        "git"
+      ],
+      "command": "git add -A && git commit -m wip",
+      "params": [],
+      "steps": [],
+      "exported": true,
+      "createdAt": "2026-08-24T09:47:23.698394Z",
+      "updatedAt": "2026-08-24T09:47:23.698394Z"
+    },
+    {
+      "id": "b4a03e07-701f-41ad-be26-cac463b41b7a",
+      "kind": "alias",
+      "name": "gbr",
+      "title": "New ticket branch",
+      "description": "Create a branch prefixed with a ticket number",
+      "tags": [
+        "git"
+      ],
+      "command": "git checkout -b {{ticket}}-{{feature}}",
+      "params": [
+        {
+          "name": "ticket",
+          "description": "e.g. abc-123",
+          "default": "",
+          "required": true
+        },
+        {
+          "name": "feature",
+          "description": "short kebab-case name",
+          "default": "",
+          "required": true
+        }
+      ],
+      "steps": [],
+      "exported": true,
+      "createdAt": "2026-08-24T09:47:23.698394Z",
+      "updatedAt": "2026-08-24T09:47:23.698394Z"
+    },
+    {
+      "id": "992c8f2a-98f4-4592-af15-f8dae8ce5a18",
+      "kind": "alias",
+      "name": "ports",
+      "title": "What is on this port",
+      "description": "Show the process listening on a port",
+      "tags": [
+        "net"
+      ],
+      "command": "lsof -nP -iTCP:{{port}} -sTCP:LISTEN",
+      "params": [
+        {
+          "name": "port",
+          "description": "port number",
+          "default": "3000",
+          "required": true
+        }
+      ],
+      "steps": [],
+      "exported": true,
+      "createdAt": "2026-08-24T09:47:23.698394Z",
+      "updatedAt": "2026-08-24T09:47:23.698394Z"
+    },
+    {
+      "id": "982069bd-36e5-4ff0-898c-e6368f330e6b",
+      "kind": "snippet",
+      "name": "",
+      "title": "Reset Metro cache",
+      "description": "Clear the React Native packager cache",
+      "tags": [
+        "rn"
+      ],
+      "command": "npx react-native start --reset-cache",
+      "params": [],
+      "steps": [],
+      "exported": false,
+      "createdAt": "2026-08-24T09:47:23.698394Z",
+      "updatedAt": "2026-08-24T09:47:23.698394Z"
+    },
+    {
+      "id": "255b858f-33ff-4d8e-ba2d-b8378d5f8ca5",
+      "kind": "snippet",
+      "name": "",
+      "title": "Tail a pod's logs",
+      "description": "Follow logs for a pod in a namespace",
+      "tags": [
+        "k8s"
+      ],
+      "command": "kubectl logs -f {{pod}} -n {{ns}}",
+      "params": [
+        {
+          "name": "pod",
+          "description": "",
+          "default": "",
+          "required": true
+        },
+        {
+          "name": "ns",
+          "description": "namespace",
+          "default": "default",
+          "required": false
+        }
+      ],
+      "steps": [],
+      "exported": false,
+      "createdAt": "2026-08-24T09:47:23.698394Z",
+      "updatedAt": "2026-08-24T09:47:23.698394Z"
+    },
+    {
+      "id": "78f49ae0-f8ae-48fb-ad38-7a0d02f529b9",
+      "kind": "runbook",
+      "name": "",
+      "title": "New Expo app",
+      "description": "Scaffold an Expo app on a pinned SDK",
+      "tags": [
+        "expo",
+        "rn"
+      ],
+      "command": "",
+      "params": [],
+      "steps": [
+        {
+          "title": "Scaffold",
+          "body": "Pick the SDK version explicitly rather than taking latest.",
+          "command": "npx create-expo-app@latest {{name}} --template blank-typescript"
+        },
+        {
+          "title": "Pin the SDK",
+          "body": "",
+          "command": "npx expo install expo@^{{sdk}} --fix"
+        },
+        {
+          "title": "Verify",
+          "body": "Confirm the dev server boots before committing.",
+          "command": "npx expo start -c"
+        }
+      ],
+      "exported": false,
+      "createdAt": "2026-08-24T09:47:23.698394Z",
+      "updatedAt": "2026-08-24T09:47:23.698394Z"
+    }
+  ]
+}

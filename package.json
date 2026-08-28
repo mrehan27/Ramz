@@ -1,0 +1,94 @@
+{
+  "name": "ramz",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "tsx watch server/index.ts",
+    "dev:web": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit",
+    "start": "tsx server/index.ts",
+    "agent:install": "node scripts/agent.mjs install",
+    "agent:uninstall": "node scripts/agent.mjs uninstall",
+    "agent:restart": "node scripts/agent.mjs restart",
+    "agent:status": "node scripts/agent.mjs status",
+    "agent:reload": "npm run build && npm run agent:restart",
+    "build:electron": "npm run icon:tray && esbuild --bundle --platform=node --target=node22 --external:electron --format=cjs --outfile=dist-electron/main.cjs electron/main.ts && esbuild --bundle --platform=node --target=node22 --external:electron --format=cjs --outfile=dist-electron/preload.cjs electron/preload.ts",
+    "icon": "env -u ELECTRON_RUN_AS_NODE electron scripts/app-icon.cjs",
+    "icon:tray": "env -u ELECTRON_RUN_AS_NODE electron scripts/app-icon.cjs --tray",
+    "install:app": "node scripts/install-app.mjs",
+    "build:app": "npm run build && npm run build:electron",
+    "app": "npm run build:app && env -u ELECTRON_RUN_AS_NODE electron .",
+    "dev:app": "concurrently -n vite,electron -c magenta,cyan \"npm:dev:web\" \"npm run dev:electron\"",
+    "dev:electron": "npm run build:electron && RAMZ_DEV_URL=http://localhost:5173 env -u ELECTRON_RUN_AS_NODE electron .",
+    "package": "npm run icon && npm run build:app && electron-builder --mac",
+    "release": "node scripts/release.mjs"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "fuse.js": "^7.0.0",
+    "hono": "^4.6.14",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.17",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.0",
+    "electron": "^44.0.0",
+    "electron-builder": "^26.15.3",
+    "tailwindcss": "^4.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "esbuild@0.25.12": true,
+    "electron@44.0.0": true
+  },
+  "main": "dist-electron/main.cjs",
+  "build": {
+    "appId": "local.ramz",
+    "productName": "RAMZ",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "electron/assets/**",
+      "data/**",
+      "package.json"
+    ],
+    "extraMetadata": {
+      "main": "dist-electron/main.cjs"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.developer-tools",
+      "identity": null,
+      "icon": "build/icon.icns"
+    }
+  }
+}

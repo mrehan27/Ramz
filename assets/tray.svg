@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 22" fill="#000">
+  <defs><mask id="m">
+    <rect width="22" height="22" fill="#fff"/>
+    <g transform="translate(11.6 3.2) scale(1.05)" fill="#000">
+      <path d="M7.4 0 0 9.6h4.3l-.6 6.4L11.1 6.2H6.6z"/>
+    </g>
+  </mask></defs>
+  <g mask="url(#m)">
+    <rect x="2.2" y="5" width="11" height="3" rx="1.5"/><rect x="2.2" y="10.2" width="8.5" height="3" rx="1.5"/><rect x="2.2" y="15.4" width="6.2" height="3" rx="1.5"/>
+  </g>
+  <g transform="translate(12.2 3.6) scale(0.86)"><path d="M7.4 0 0 9.6h4.3l-.6 6.4L11.1 6.2H6.6z"/></g></svg>

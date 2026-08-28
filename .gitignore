@@ -1,0 +1,12 @@
+node_modules
+dist
+*.local
+.DS_Store
+data/*.bak
+tsconfig.tsbuildinfo
+links/
+data/commands.json
+dist-electron
+release
+build/icon.iconset/
+build/.render-*.html
