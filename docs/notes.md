@@ -16,13 +16,21 @@ live only in conversation.
 
 ## Decisions worth remembering
 
+- **The panel is an NSPanel** (`type: "panel"`, `screen-saver` level, visible on all Spaces).
+  A plain window plus `app.focus({steal:true})` activates the app, and activating a regular
+  app raises its own Space, which drops you out of a full-screen window onto the desktop. An
+  NSPanel takes key focus without activating, so the panel overlays whatever is in front.
+- **"Sync to shell", never "export".** The operation regenerates files Ramz owns from the
+  entries; nothing portable comes out of it. Moving machines is copying `commands.json`, which
+  is what Settings → Your data says.
 - **The app is called Ramz** (symbol, code, cipher), and the name is used
   everywhere: `~/.config/ramz`, `~/.local/share/ramz`, `RAMZ_*` env vars, the `# ramz` rc marker,
   the launchd label `local.ramz`, the npm package name, `window.ramz`. No `dx` is left in the
   code.
-- **The icon is generated, not drawn** (`scripts/app-icon.cjs`): SVG rendered through electron,
-  since it is the only renderer we depend on and nativeImage cannot read SVG. The app icon and
-  the menubar mark come from one shape in that file, so the two cannot drift.
+- **The icons are artwork, not code** (`assets/icon.svg`, `assets/tray.svg`), converted by
+  `scripts/app-icon.cjs` through electron, since it is the only renderer we depend on and
+  nativeImage cannot read SVG. The menubar mark is a template image: black plus alpha only, so
+  it is its own simplified shape rather than a copy of the app icon.
 - **The mark is the list, not a terminal prompt.** The `>_` icon was replaced because the app is
   a shelf of commands, not a terminal.
 - **`LSUIElement` is deliberately not set.** It makes the Dock refuse to keep a tile, so the
@@ -72,6 +80,10 @@ live only in conversation.
   or the expansion lands outside them and splits on spaces.
 
 ## Open threads
+
+0. File-based import and export with merge semantics, so entries can come from another
+   machine without overwriting. The open question is collision behaviour: skip, overwrite, or
+   keep both. Copying the store file is the current answer and is all-or-nothing.
 
 1. Run with output: `node-pty` plus `xterm.js`. The reason Electron was chosen over a browser
    tab, and still the largest missing feature.
