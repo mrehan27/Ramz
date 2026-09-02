@@ -1,4 +1,4 @@
-# Working on RAMZ as an agent
+# Working on Ramz as an agent
 
 For Claude, Cursor, Copilot and anyone else editing this repo without having lived through
 its history. Read [notes.md](notes.md) next: it lists traps that have already cost time.
@@ -90,4 +90,4 @@ State plainly what you verified and what you did not. There is no test suite yet
 
 ---
 
-<sub>Part of [RAMZ](../README.md). Written by Claude, directed and reviewed by the owner.</sub>
+<sub>Part of [Ramz](../README.md). Written by Claude, directed and reviewed by the owner.</sub>

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * The whole update loop, in one command: build, quit the running copy, replace
- * ~/Applications/RAMZ.app, launch it again.
+ * ~/Applications/Ramz.app, launch it again.
  *
  *   npm run install:app                 # build, install, relaunch
  *   npm run install:app -- --no-build   # install whatever is in release/
@@ -18,7 +18,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const APP = "RAMZ.app";
+const APP = "Ramz.app";
 const src = path.join(ROOT, "release", "mac-arm64", APP);
 const destDir = path.join(os.homedir(), "Applications");
 const dest = path.join(destDir, APP);
@@ -29,7 +29,7 @@ const run = (cmd, args) => execFileSync(cmd, args, { cwd: ROOT, stdio: "inherit"
 /** pgrep exits 1 when nothing matches, which is not an error here. */
 function running() {
   try {
-    execFileSync("pgrep", ["-f", "RAMZ.app/Contents/MacOS/RAMZ"], { stdio: "ignore" });
+    execFileSync("pgrep", ["-f", "Ramz.app/Contents/MacOS/Ramz"], { stdio: "ignore" });
     return true;
   } catch {
     return false;
@@ -46,11 +46,11 @@ if (!fs.existsSync(src)) {
 // Replacing the bundle under a running copy orphans it: the process survives with
 // no bundle behind it, and the Dock is left with a tile that only offers Force Quit.
 if (running()) {
-  console.log("RAMZ is running, asking it to quit");
-  try { execFileSync("osascript", ["-e", 'quit app "RAMZ"']); } catch { /* no scripting bridge */ }
+  console.log("Ramz is running, asking it to quit");
+  try { execFileSync("osascript", ["-e", 'quit app "Ramz"']); } catch { /* no scripting bridge */ }
   for (let i = 0; i < 25 && running(); i++) execFileSync("sleep", ["0.2"]);
   if (running()) {
-    console.error("RAMZ is still running; quit it from the menubar icon, then run this again");
+    console.error("Ramz is still running; quit it from the menubar icon, then run this again");
     process.exit(1);
   }
 }

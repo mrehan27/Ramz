@@ -176,7 +176,7 @@ export function EntryCard({
           <div className="flex flex-wrap items-center gap-1.5">
             {entry.tags.map((t) => <TagBadge key={t} tag={t} color={tagColors[t]} />)}
             {entry.useCount > 0 && (
-              <Tip text={`Copied ${entry.useCount} time${entry.useCount === 1 ? "" : "s"} from RAMZ`}>
+              <Tip text={`Copied ${entry.useCount} time${entry.useCount === 1 ? "" : "s"} from Ramz`}>
                 <span className="text-[11px] text-neutral-400">·  {entry.useCount}×</span>
               </Tip>
             )}

@@ -80,8 +80,8 @@ export function ExportDialog({
           <section className="space-y-3">
             <div className="text-sm text-neutral-600 dark:text-neutral-400">
               <span className="font-mono">{preview.count}</span> {preview.count === 1 ? "entry" : "entries"} into{" "}
-              <span className="font-mono">{preview.configDir}</span>, a directory RAMZ owns outright. Nothing else on the
-              system is touched, and deleting it removes RAMZ from your shell completely.
+              <span className="font-mono">{preview.configDir}</span>, a directory Ramz owns outright. Nothing else on the
+              system is touched, and deleting it removes Ramz from your shell completely.
             </div>
 
             {errors.length > 0 && (
@@ -155,7 +155,7 @@ export function ExportDialog({
           <section className="space-y-2 border-t border-neutral-200 pt-4 dark:border-neutral-800">
             <h3 className="flex items-center gap-1.5 text-sm font-semibold">
               Load it from your shell
-              <Info text="Your rc file runs on every new shell. This one line tells it to read the loader. RAMZ never adds anything else to it." />
+              <Info text="Your rc file runs on every new shell. This one line tells it to read the loader. Ramz never adds anything else to it." />
             </h3>
             <p className="text-sm text-neutral-600 dark:text-neutral-400">
               One line, tagged <span className="font-mono">{"# ramz"}</span> so it can be removed again exactly. It does
@@ -180,12 +180,12 @@ export function ExportDialog({
                       onClick={() => run(async () => {
                         await api.rc(rc.file, "remove");
                         toast({
-                          title: `Removed the RAMZ line from ${rc.name}`,
+                          title: `Removed the Ramz line from ${rc.name}`,
                           body: "Shells already running keep the commands until they are restarted.",
                           run: "exec $SHELL",
                           tone: "warn",
                         });
-                        return `Removed the RAMZ line from ${rc.name}.`;
+                        return `Removed the Ramz line from ${rc.name}.`;
                       })}
                     >
                       Remove line
@@ -200,7 +200,7 @@ export function ExportDialog({
                           body: "Applies to new terminals. To apply it to this one, restart your shell:",
                           run: "exec $SHELL",
                         });
-                        return `Added the RAMZ line to ${rc.name}.`;
+                        return `Added the Ramz line to ${rc.name}.`;
                       })}
                     >
                       {rc.exists ? "Add line" : "Create + add line"}
@@ -214,10 +214,10 @@ export function ExportDialog({
           <section className="space-y-2 border-t border-neutral-200 pt-4 dark:border-neutral-800">
             <h3 className="flex items-center gap-1.5 text-sm font-semibold">
               Uninstall
-              <Info text="Removes the generated files only. Your entries stay in RAMZ, and you can export them again at any time." />
+              <Info text="Removes the generated files only. Your entries stay in Ramz, and you can export them again at any time." />
             </h3>
             <p className="text-sm text-neutral-600 dark:text-neutral-400">
-              Deletes only the files RAMZ generated (anything else in the directory is left, and reported back), then
+              Deletes only the files Ramz generated (anything else in the directory is left, and reported back), then
               removes the directory if it is empty. Your entries stay in the store.
             </p>
             <Button

@@ -1,5 +1,5 @@
 /**
- * Every operation RAMZ can perform, as plain functions. The HTTP server and the
+ * Every operation Ramz can perform, as plain functions. The HTTP server and the
  * Electron IPC layer are both thin adapters over this: one implementation, two
  * ways in.
  *
@@ -203,7 +203,7 @@ export async function runExport() {
   return { ok: true as const, count: preview.count, configDir: RAMZ_DIR, loaderFile: loaderPath() };
 }
 
-/** Deletes what RAMZ generated and nothing else. The directory goes too if it is empty. */
+/** Deletes what Ramz generated and nothing else. The directory goes too if it is empty. */
 export async function removeGenerated() {
   const removed: string[] = [];
   const kept: string[] = [];

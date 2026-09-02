@@ -6,7 +6,7 @@ this more than a drag and drop.
 ## The script
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mrehan27/RAMZ/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/mrehan27/Ramz/main/install.sh | sh
 ```
 
 It finds the latest release, downloads the zip, quits a running copy, installs to
@@ -14,22 +14,22 @@ It finds the latest release, downloads the zip, quits a running copy, installs t
 somewhere else:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mrehan27/RAMZ/main/install.sh | RAMZ_DEST=~/Applications sh
+curl -fsSL https://raw.githubusercontent.com/mrehan27/Ramz/main/install.sh | RAMZ_DEST=~/Applications sh
 ```
 
 ## By hand
 
-1. Download the zip from [releases](https://github.com/mrehan27/RAMZ/releases).
-2. Unzip it and move `RAMZ.app` to `/Applications`.
+1. Download the zip from [releases](https://github.com/mrehan27/Ramz/releases).
+2. Unzip it and move `Ramz.app` to `/Applications`.
 3. Right-click the app and choose **Open**, then **Open** again in the dialog.
 
 Step 3 matters. Double-clicking an unsigned app downloaded from a browser gets you
-"RAMZ is damaged and can't be opened", which is macOS reporting the quarantine flag rather
+"Ramz is damaged and can't be opened", which is macOS reporting the quarantine flag rather
 than anything actually wrong. Right-click and Open tells Gatekeeper you meant it. The same
 thing from a terminal:
 
 ```sh
-xattr -dr com.apple.quarantine /Applications/RAMZ.app
+xattr -dr com.apple.quarantine /Applications/Ramz.app
 ```
 
 ## Updating
@@ -40,9 +40,9 @@ Dock keeps working, and your entries are untouched.
 ## Uninstalling
 
 ```sh
-osascript -e 'quit app "RAMZ"'
-rm -rf /Applications/RAMZ.app
-rm -rf ~/Library/Application\ Support/RAMZ    # window state and caches
+osascript -e 'quit app "Ramz"'
+rm -rf /Applications/Ramz.app
+rm -rf ~/Library/Application\ Support/Ramz    # window state and caches
 ```
 
 If you exported aliases, remove those too. The app's Export dialog has an Uninstall button
@@ -59,4 +59,4 @@ and it is the only one you cannot undo.
 
 ---
 
-<sub>Part of [RAMZ](../README.md). Written by Claude, directed and reviewed by the owner.</sub>
+<sub>Part of [Ramz](../README.md). Written by Claude, directed and reviewed by the owner.</sub>

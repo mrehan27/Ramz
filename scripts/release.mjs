@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Part of RAMZ (https://github.com/mrehan27/RAMZ). Written by Claude.
+// Part of Ramz (https://github.com/mrehan27/Ramz). Written by Claude.
 /**
  * Cuts a GitHub release: builds the app, then uploads the zip that install.sh
  * downloads.
@@ -46,9 +46,9 @@ if (!zip) bail("no zip in release/: check the electron-builder mac targets");
 run("git", ["tag", tag]);
 run("git", ["push", "origin", tag]);
 run("gh", ["release", "create", tag, path.join(ROOT, "release", zip),
-  "--title", `RAMZ ${tag}`, "--generate-notes"]);
+  "--title", `Ramz ${tag}`, "--generate-notes"]);
 
-console.log(`\nreleased ${tag}. Install it anywhere with:\n  curl -fsSL https://raw.githubusercontent.com/mrehan27/RAMZ/main/install.sh | sh`);
+console.log(`\nreleased ${tag}. Install it anywhere with:\n  curl -fsSL https://raw.githubusercontent.com/mrehan27/Ramz/main/install.sh | sh`);
 
 function tagExists() {
   try {

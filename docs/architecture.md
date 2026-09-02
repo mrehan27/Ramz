@@ -68,4 +68,4 @@ A new page is a new filter over the same store, so add a row to `NAV` in `src/Ap
 
 ---
 
-<sub>Part of [RAMZ](../README.md). Written by Claude, directed and reviewed by the owner.</sub>
+<sub>Part of [Ramz](../README.md). Written by Claude, directed and reviewed by the owner.</sub>

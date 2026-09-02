@@ -18,7 +18,7 @@ const { execFileSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 
-app.setName("RAMZ"); // share one userData dir with the app itself
+app.setName("Ramz"); // share one userData dir with the app itself
 
 const ROOT = path.resolve(__dirname, "..");
 const BUILD = path.join(ROOT, "build");

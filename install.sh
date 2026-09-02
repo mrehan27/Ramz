@@ -1,19 +1,19 @@
 #!/bin/sh
-# Part of RAMZ (https://github.com/mrehan27/RAMZ). Written by Claude.
-# Installs the latest RAMZ release into /Applications.
+# Part of Ramz (https://github.com/mrehan27/Ramz). Written by Claude.
+# Installs the latest Ramz release into /Applications.
 #
-#   curl -fsSL https://raw.githubusercontent.com/mrehan27/RAMZ/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/mrehan27/Ramz/main/install.sh | sh
 #
 # The app is unsigned, so macOS quarantines anything downloaded from a browser
 # and refuses to open it. This clears that flag on the copy it just installed,
 # which is the same thing right-click > Open does, minus the dialog.
 set -eu
 
-REPO="mrehan27/RAMZ"
-APP="RAMZ.app"
+REPO="mrehan27/Ramz"
+APP="Ramz.app"
 DEST="${RAMZ_DEST:-/Applications}"
 
-[ "$(uname -s)" = "Darwin" ] || { echo "RAMZ is macOS only"; exit 1; }
+[ "$(uname -s)" = "Darwin" ] || { echo "Ramz is macOS only"; exit 1; }
 [ "$(uname -m)" = "arm64" ] || echo "warning: releases are built for Apple silicon"
 
 tmp=$(mktemp -d)
@@ -31,7 +31,7 @@ ditto -x -k "$tmp/ramz.zip" "$tmp"
 
 if [ -d "$DEST/$APP" ]; then
   echo "quitting the running copy"
-  osascript -e 'quit app "RAMZ"' 2>/dev/null || true
+  osascript -e 'quit app "Ramz"' 2>/dev/null || true
   rm -rf "$DEST/$APP"
 fi
 

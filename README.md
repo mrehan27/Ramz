@@ -2,7 +2,7 @@
   <img src="assets/icon-256.png" width="120" alt="">
 </p>
 
-<h1 align="center">RAMZ</h1>
+<h1 align="center">Ramz</h1>
 
 <p align="center">A shelf for the commands you actually use, one keystroke away from anywhere.</p>
 
@@ -14,7 +14,7 @@
 
 Every developer accumulates commands worth keeping: the rebuild incantation with four flags,
 the log query with the right filters, the release checklist you half remember. They end up
-scattered across a `.zshrc`, a scratch file, and browser history. RAMZ keeps them in one
+scattered across a `.zshrc`, a scratch file, and browser history. Ramz keeps them in one
 place, makes them searchable from a global palette, and generates real shell aliases for the
 handful you type every day.
 
@@ -53,17 +53,17 @@ If you are an AI agent picking this up, start with [docs/agents.md](docs/agents.
 macOS, Apple silicon:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mrehan27/RAMZ/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/mrehan27/Ramz/main/install.sh | sh
 ```
 
-That downloads the latest [release](https://github.com/mrehan27/RAMZ/releases), installs it
+That downloads the latest [release](https://github.com/mrehan27/Ramz/releases), installs it
 to `/Applications` and opens it. The build is unsigned, so the script clears the quarantine
 flag macOS puts on downloads. To do it by hand, or to update or uninstall, see
 [docs/install.md](docs/install.md).
 
 ## Use
 
-RAMZ lives in the menubar. Click the icon, or:
+Ramz lives in the menubar. Click the icon, or:
 
 | | |
 |---|---|
@@ -77,7 +77,7 @@ Type a few letters, press Enter, and the command is on your clipboard. Commands 
 
 Aliases are the only kind that touch your machine, and only when you press Export. That
 writes two files into `~/.config/ramz` and adds one tagged line to your shell rc. Deleting
-that directory removes RAMZ from your shell completely; nothing else is touched.
+that directory removes Ramz from your shell completely; nothing else is touched.
 
 ## Docs
 

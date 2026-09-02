@@ -16,7 +16,7 @@ live only in conversation.
 
 ## Decisions worth remembering
 
-- **The app is called RAMZ** (symbol, code, cipher), and the name is used
+- **The app is called Ramz** (symbol, code, cipher), and the name is used
   everywhere: `~/.config/ramz`, `~/.local/share/ramz`, `RAMZ_*` env vars, the `# ramz` rc marker,
   the launchd label `local.ramz`, the npm package name, `window.ramz`. No `dx` is left in the
   code.
@@ -30,7 +30,7 @@ live only in conversation.
   (Settings → App → Show in the Dock), applied at runtime with `app.dock.show()/hide()`.
 - **Preferences live in the store** (`prefs` in `commands.json`), not in `localStorage`, so the
   main process can read them before the UI exists. One file to back up.
-- **The Dock tile points at `~/Applications/RAMZ.app`**, not at `release/`, which every
+- **The Dock tile points at `~/Applications/Ramz.app`**, not at `release/`, which every
   rebuild wipes. `npm run install:app` copies it there.
 
 - **Kind describes what a thing is; frequency does not.** Hence `archived` as a flag and
@@ -83,4 +83,4 @@ live only in conversation.
 
 ---
 
-<sub>Part of [RAMZ](../README.md). Written by Claude, directed and reviewed by the owner.</sub>
+<sub>Part of [Ramz](../README.md). Written by Claude, directed and reviewed by the owner.</sub>

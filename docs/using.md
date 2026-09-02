@@ -1,4 +1,4 @@
-# Using RAMZ
+# Using Ramz
 
 ## In the UI
 
@@ -63,7 +63,7 @@ spaces.
 
 ## Export and install
 
-Export generates two files, both owned entirely by RAMZ:
+Export generates two files, both owned entirely by Ramz:
 
 ```
 ~/.config/ramz/
@@ -72,19 +72,19 @@ Export generates two files, both owned entirely by RAMZ:
 ```
 
 Both are rewritten in full on every export (atomic tmp + rename), so there is no
-managed-block splicing and no way to half-own a file. Before writing, RAMZ blocks on
+managed-block splicing and no way to half-own a file. Before writing, Ramz blocks on
 duplicate names and undefined placeholders, and warns when a name shadows something
 already on `$PATH`.
 
 Your shell needs exactly one line, which the app can add and remove for you:
 
 ```sh
-[ -r "${XDG_CONFIG_HOME:-$HOME/.config}/ramz/init.sh" ] && . "${XDG_CONFIG_HOME:-$HOME/.config}/ramz/init.sh" # RAMZ
+[ -r "${XDG_CONFIG_HOME:-$HOME/.config}/ramz/init.sh" ] && . "${XDG_CONFIG_HOME:-$HOME/.config}/ramz/init.sh" # Ramz
 ```
 
 The `# ramz` tag is how the line is found again for removal. The line is inert when the
 directory is missing, so `rm -rf ~/.config/ramz` is a complete uninstall. Nothing else on
-the system knows RAMZ exists. The Uninstall button does the same, and refuses to delete any
+the system knows Ramz exists. The Uninstall button does the same, and refuses to delete any
 file in there that does not carry the generated header.
 
 Adding another generated file later (per-tag files, completions) means adding it to
@@ -117,4 +117,4 @@ an alias it calls if that alias is already defined when the function is parsed.
 
 ---
 
-<sub>Part of [RAMZ](../README.md). Written by Claude, directed and reviewed by the owner.</sub>
+<sub>Part of [Ramz](../README.md). Written by Claude, directed and reviewed by the owner.</sub>

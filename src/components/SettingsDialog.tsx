@@ -86,7 +86,7 @@ export function SettingsDialog({
         <section className="space-y-2 border-t border-neutral-200 pt-4 dark:border-neutral-800">
           <h3 className="flex items-center gap-1.5 font-semibold">
             Usage
-            <Info text="Counted whenever you copy something from RAMZ. The evidence for what deserves to be a shell alias." />
+            <Info text="Counted whenever you copy something from Ramz. The evidence for what deserves to be a shell alias." />
           </h3>
           <p className="text-neutral-600 dark:text-neutral-400">
             {copies} {copies === 1 ? "copy" : "copies"} across {counted.length} {counted.length === 1 ? "entry" : "entries"}.
@@ -147,14 +147,14 @@ function Pref({
   );
 }
 
-/** Where the aliases have actually got to: in RAMZ, on disk, or in your shell. */
+/** Where the aliases have actually got to: in Ramz, on disk, or in your shell. */
 function ShellStatus({ config }: { config: Config | null }) {
   if (!config) return null;
   const state = !config.installed
     ? {
         dot: "bg-neutral-400",
         title: "Not exported yet",
-        body: "Your aliases live in RAMZ only. Export writes them to the directory above and adds one line to your shell rc.",
+        body: "Your aliases live in Ramz only. Export writes them to the directory above and adds one line to your shell rc.",
       }
     : config.rc.some((r) => r.hasLine)
       ? {

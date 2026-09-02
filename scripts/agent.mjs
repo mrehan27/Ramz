@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Manages the launchd agent that keeps RAMZ running in the background.
+ * Manages the launchd agent that keeps Ramz running in the background.
  * install | uninstall | restart | status
  */
 import { execFileSync } from "node:child_process";
@@ -72,19 +72,19 @@ if (cmd === "install") {
   const wasLoaded = loaded();
   sh("launchctl", ["bootout", `${target}/${LABEL}`]);
   if (existsSync(PLIST)) unlinkSync(PLIST);
-  console.log(wasLoaded || existsSync(PLIST) ? "removed. RAMZ no longer starts at login." : "nothing to remove.");
+  console.log(wasLoaded || existsSync(PLIST) ? "removed. Ramz no longer starts at login." : "nothing to remove.");
 } else if (cmd === "restart") {
   // Nothing to restart is a normal state, so say so rather than failing a build chain.
   if (!loaded()) {
     if (!existsSync(PLIST)) {
-      console.log("RAMZ is not installed as a background app; `npm run agent:install` sets that up.");
+      console.log("Ramz is not installed as a background app; `npm run agent:install` sets that up.");
       console.log("The build is done either way; `npm run dev` still works.");
       process.exit(0);
     }
     if (sh("launchctl", ["bootstrap", target, PLIST]) === null) bail(`launchctl refused to load ${PLIST}`);
     console.log(`started    http://127.0.0.1:${PORT}`);
   } else {
-    if (sh("launchctl", ["kickstart", "-k", `${target}/${LABEL}`]) === null) bail("launchctl could not restart RAMZ");
+    if (sh("launchctl", ["kickstart", "-k", `${target}/${LABEL}`]) === null) bail("launchctl could not restart Ramz");
     console.log(`restarted  http://127.0.0.1:${PORT}`);
   }
 } else {

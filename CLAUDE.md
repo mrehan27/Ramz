@@ -1,4 +1,4 @@
-# RAMZ
+# Ramz
 
 See [docs/agents.md](docs/agents.md) for how to work in this repo, and
 [docs/notes.md](docs/notes.md) for decisions and traps already hit.

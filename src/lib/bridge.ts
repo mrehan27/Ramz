@@ -1,5 +1,5 @@
 /**
- * RAMZ runs two ways: inside Electron (IPC, no port) and in a browser against the
+ * Ramz runs two ways: inside Electron (IPC, no port) and in a browser against the
  * local HTTP server. Everything above this file is written once and works in both.
  */
 type Reply<T> = { ok: true; value: T } | { ok: false; error: string };

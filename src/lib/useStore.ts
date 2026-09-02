@@ -18,7 +18,7 @@ export function useStore() {
       setTagColors(tags);
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "could not reach the RAMZ api");
+      setError(e instanceof Error ? e.message : "could not reach the Ramz api");
     } finally {
       setLoading(false);
     }

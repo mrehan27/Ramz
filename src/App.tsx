@@ -118,7 +118,7 @@ function Shelf() {
     <div className="flex h-full">
       <nav className="flex w-52 shrink-0 flex-col border-r border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="px-2 py-2">
-          <span className="text-lg font-bold tracking-tight">RAMZ</span>
+          <span className="text-lg font-bold tracking-tight">Ramz</span>
           <p className="text-xs text-neutral-400">your local command shelf</p>
           <button
             onClick={() => setPalette(true)}

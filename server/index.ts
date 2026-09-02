@@ -74,6 +74,6 @@ if (existsSync(dist)) {
 
 const port = Number(process.env.RAMZ_PORT ?? 5174);
 serve({ fetch: app.fetch, hostname: "127.0.0.1", port });
-console.log(`RAMZ      http://127.0.0.1:${port}${existsSync(dist) ? "" : "  (api only; run npm run build for the UI)"}`);
+console.log(`Ramz      http://127.0.0.1:${port}${existsSync(dist) ? "" : "  (api only; run npm run build for the UI)"}`);
 console.log(`  store  ${STORE_PATH}`);
 console.log(`  shell  ${RAMZ_DIR}`);

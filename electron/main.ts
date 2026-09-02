@@ -4,8 +4,8 @@ import { RamzError, getPrefs } from "../server/core.ts";
 import type { Prefs } from "../shared/schema.ts";
 import { HANDLERS, CHANNELS } from "./ipc.ts";
 
-// Before ready, so dev and packaged runs share one ~/Library/Application Support/RAMZ.
-app.setName("RAMZ");
+// Before ready, so dev and packaged runs share one ~/Library/Application Support/Ramz.
+app.setName("Ramz");
 
 // Bundled to CommonJS: electron's own module is CJS, so named ESM imports of it fail.
 declare const __dirname: string;
@@ -64,7 +64,7 @@ function createMain() {
   const win = new BrowserWindow({
     width: 1100,
     height: 780,
-    title: "RAMZ",
+    title: "Ramz",
     webPreferences: { preload: PRELOAD, sandbox: false },
   });
   void load(win, false);
@@ -122,9 +122,9 @@ function makeTray() {
   const t = new Tray(icon.isEmpty() ? nativeImage.createEmpty() : icon);
   if (icon.isEmpty()) {
     console.error(`tray icon missing at ${TRAY_ICON}: falling back to a title`);
-    t.setTitle("RAMZ");
+    t.setTitle("Ramz");
   }
-  t.setToolTip("RAMZ (⌘⇧K)");
+  t.setToolTip("Ramz (⌘⇧K)");
   return t;
 }
 
@@ -168,7 +168,7 @@ app.whenReady().then(() => {
     { type: "separator" },
     { label: "Open the shell directory", click: () => void shell.openPath(path.join(process.env.HOME ?? "", ".config", "ramz")) },
     { type: "separator" },
-    { label: "Quit RAMZ", role: "quit" },
+    { label: "Quit Ramz", role: "quit" },
   ])));
 
   for (const [key, action] of [[HOTKEY, togglePanel], [HOTKEY_MAIN, showMain]] as const) {

@@ -13,7 +13,7 @@ export const PROJECT_ROOT = path.resolve(moduleDir, "..");
 /** Marks the rc line as ours so it can be removed again exactly. */
 export const TAG = "# ramz";
 
-/** Everything RAMZ generates lives in one directory it owns entirely. */
+/** Everything Ramz generates lives in one directory it owns entirely. */
 export const RAMZ_DIR =
   process.env.RAMZ_DIR ??
   path.join(process.env.XDG_CONFIG_HOME ?? path.join(os.homedir(), ".config"), "ramz");

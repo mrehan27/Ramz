@@ -19,7 +19,7 @@ npm run install:app
 ```
 
 The whole update loop in one command: package, quit a running copy, replace
-`~/Applications/RAMZ.app`, launch it. `--no-build` installs whatever is already in
+`~/Applications/Ramz.app`, launch it. `--no-build` installs whatever is already in
 `release/`; `--no-launch` leaves it closed.
 
 It installs into `~/Applications` rather than running from `release/`, which every rebuild
@@ -32,7 +32,7 @@ wipes. The path never changes, so a Dock tile pinned once keeps working.
 | `npm run dev:app` | app development, vite plus Electron |
 | `npm run dev` | web development, live reload |
 | `npm run typecheck` | `tsc -b --noEmit` |
-| `npm run package` | build `release/mac-arm64/RAMZ.app` and the release zip |
+| `npm run package` | build `release/mac-arm64/Ramz.app` and the release zip |
 | `npm run install:app` | build, install to `~/Applications`, relaunch |
 | `npm run release` | tag, build and publish a GitHub release |
 | `npm run icon` | regenerate `build/icon.icns` |
@@ -99,7 +99,7 @@ without it downloads get quarantined, which `install.sh` handles.
 
 ## The web mode
 
-RAMZ can also run as a local web app, served by a launchd agent:
+Ramz can also run as a local web app, served by a launchd agent:
 
 ```sh
 npm run build
@@ -116,4 +116,4 @@ tailscale. If you only want the app, you never need it.
 
 ---
 
-<sub>Part of [RAMZ](../README.md). Written by Claude, directed and reviewed by the owner.</sub>
+<sub>Part of [Ramz](../README.md). Written by Claude, directed and reviewed by the owner.</sub>
