@@ -4,18 +4,26 @@
  */
 type Reply<T> = { ok: true; value: T } | { ok: false; error: string };
 
+type View = "settings";
+
 type Bridge = Record<string, (...args: unknown[]) => Promise<Reply<unknown>>> & {
   isPanel: boolean;
-  openMainWindow: () => Promise<void>;
+  openMainWindow: (view?: View) => Promise<void>;
   hidePanel: () => Promise<void>;
+  revealStore: () => Promise<void>;
+  onView: (fn: (view: View) => void) => void;
 };
 
 const bridge = (globalThis as { ramz?: Bridge }).ramz;
 
 export const inApp = Boolean(bridge);
 export const inPanel = Boolean(bridge?.isPanel);
-export const openMainWindow = () => bridge?.openMainWindow();
+export const openMainWindow = (view?: View) => bridge?.openMainWindow(view);
+/** Fires when the main process asks this window to show something. */
+export const onView = (fn: (view: View) => void) => bridge?.onView(fn);
 export const hidePanel = () => bridge?.hidePanel();
+/** Opens Finder on the store file, for backups and moving machines. */
+export const revealStore = () => bridge?.revealStore();
 
 /** IPC when we have it, HTTP when we do not. */
 export async function call<T>(

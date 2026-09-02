@@ -61,9 +61,9 @@ where the placeholder sits in the template:
 Without this, a placeholder inside quotes would end up expanding unquoted and split on
 spaces.
 
-## Export and install
+## Sync to shell
 
-Export generates two files, both owned entirely by Ramz:
+Sync to shell generates two files, both owned entirely by Ramz:
 
 ```
 ~/.config/ramz/

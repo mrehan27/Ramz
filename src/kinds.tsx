@@ -22,7 +22,7 @@ export type PageProps = {
   onToggleArchive: (entry: Entry) => Promise<void>;
   onUsed: (id: string) => void;
   onTagColor: (tag: string, color: TagColor | null) => void;
-  /** Kind-specific buttons in the page header, e.g. Import and Export. */
+  /** Kind-specific buttons in the page header, e.g. Import and Sync to shell. */
   actions?: ReactNode;
 };
 

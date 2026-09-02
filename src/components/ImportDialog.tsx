@@ -164,7 +164,7 @@ export function ImportDialog({ onClose, onImported }: { onClose: () => void; onI
                       title: `Imported ${res.added} command${res.added === 1 ? "" : "s"}`,
                       body: res.rejected.length
                         ? `${res.rejected.length} skipped: ${res.rejected.map((r) => `${r.name} (${r.reason})`).join(", ")}`
-                        : "They live in Ramz only until you run Export.",
+                        : "They live in Ramz only until you sync to your shell.",
                       tone: res.rejected.length ? "warn" : "ok",
                     });
                     onImported();

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Entry, Prefs } from "../../shared/schema.ts";
 import { api, type Config } from "../lib/api.ts";
-import { inApp } from "../lib/bridge.ts";
+import { inApp, revealStore } from "../lib/bridge.ts";
 import { Button, Info, Modal, cx } from "./ui.tsx";
 import { CopyButton } from "./CopyButton.tsx";
 import { useToast } from "./Toast.tsx";
@@ -41,13 +41,20 @@ export function SettingsDialog({
     <Modal title="Settings" onClose={onClose}>
       <div className="space-y-5 text-sm">
         <section className="space-y-2">
-          <h3 className="font-semibold">Where things live</h3>
+          <h3 className="flex items-center gap-1.5 font-semibold">
+            Your data
+            <Info text="Entries, tags, counters and these preferences are all in that one file. Copy it to another machine and Ramz there is this Ramz." />
+          </h3>
           <Row label="Entries" value={config?.storePath} />
           <Row label="Generated shell files" value={config?.configDir} />
-          <p className="text-xs text-neutral-400">
-            Both are ordinary files on disk. Back them up or edit them by hand, or set RAMZ_STORE and
-            RAMZ_DIR to keep them somewhere else.
+          <p className="text-xs leading-relaxed text-neutral-400">
+            Ordinary files on disk: back them up, edit them by hand, or point elsewhere with
+            RAMZ_STORE and RAMZ_DIR.
           </p>
+          <div className="flex items-center gap-2 pt-1">
+            <CopyButton value={config?.storePath ?? ""} label="Copy path" />
+            {inApp && <Button onClick={() => void revealStore()}>Show in Finder</Button>}
+          </div>
         </section>
 
         {inApp && (
@@ -153,19 +160,19 @@ function ShellStatus({ config }: { config: Config | null }) {
   const state = !config.installed
     ? {
         dot: "bg-neutral-400",
-        title: "Not exported yet",
-        body: "Your aliases live in Ramz only. Export writes them to the directory above and adds one line to your shell rc.",
+        title: "Not synced yet",
+        body: "Your aliases live in Ramz only. Sync to shell writes them to the directory above and adds one line to your shell rc.",
       }
     : config.rc.some((r) => r.hasLine)
       ? {
           dot: "bg-emerald-500",
-          title: "Exported and loaded",
+          title: "Synced and loaded",
           body: "New shells pick up changes on their own. Reload an open one to see the latest.",
         }
       : {
           dot: "bg-amber-500",
-          title: "Exported, but not loaded",
-          body: "The files are on disk, but no shell rc sources them yet. Add the line from the Export dialog.",
+          title: "Synced, but not loaded",
+          body: "The files are on disk, but no shell rc sources them yet. Add the line from the Shell dialog.",
         };
   return (
     <div className="flex gap-2.5">

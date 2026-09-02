@@ -75,7 +75,7 @@ Ramz lives in the menubar. Click the icon, or:
 Type a few letters, press Enter, and the command is on your clipboard. Commands with
 `{{arguments}}` ask for values first and remember what you typed.
 
-Aliases are the only kind that touch your machine, and only when you press Export. That
+Aliases are the only kind that touch your machine, and only when you press Sync to shell. That
 writes two files into `~/.config/ramz` and adds one tagged line to your shell rc. Deleting
 that directory removes Ramz from your shell completely; nothing else is touched.
 

@@ -187,7 +187,7 @@ export function EntryDialog({
             <div className="flex flex-col justify-end gap-1.5 pb-2 text-sm">
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={form.exported} onChange={(e) => set("exported", e.target.checked)} />
-                Include in exported shell file
+                Include when syncing to the shell
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -197,7 +197,7 @@ export function EntryDialog({
                   onChange={(e) => set("asFunction", e.target.checked)}
                 />
                 <span className={form.params.length > 0 || form.command.includes("\n") ? "text-neutral-400" : ""}>
-                  Export as a function
+                  Write as a function
                 </span>
               </label>
             </div>

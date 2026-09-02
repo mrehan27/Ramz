@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, nativeImage, screen, shell } from "electron";
 import path from "node:path";
 import { RamzError, getPrefs } from "../server/core.ts";
+import { STORE_PATH } from "../server/store.ts";
 import type { Prefs } from "../shared/schema.ts";
 import { HANDLERS, CHANNELS } from "./ipc.ts";
 
@@ -43,10 +44,15 @@ function createPanel() {
     skipTaskbar: true,
     alwaysOnTop: true,
     vibrancy: "sidebar",
+    // An NSPanel, not a window: it can take key focus without activating the app,
+    // which is what stops macOS switching Spaces out of a full-screen window.
+    type: "panel",
     webPreferences: { preload: PRELOAD, sandbox: false },
   });
-  // Follows you between Spaces instead of pulling you to where it was opened.
+  // Joins every Space, including over a full-screen app, instead of pulling you
+  // to the Space the app happens to live on.
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  win.setAlwaysOnTop(true, "screen-saver");
   // Ignore the blur that arrives while the window is still coming up.
   let shownAt = 0;
   win.on("show", () => { shownAt = Date.now(); });
@@ -60,7 +66,7 @@ function createPanel() {
 }
 
 /** The full UI, for managing entries rather than reaching for one. */
-function createMain() {
+function createMain(view?: "settings") {
   const win = new BrowserWindow({
     width: 1100,
     height: 780,
@@ -68,15 +74,13 @@ function createMain() {
     webPreferences: { preload: PRELOAD, sandbox: false },
   });
   void load(win, false);
+  if (view) win.webContents.once("did-finish-load", () => win.webContents.send("view", view));
   win.on("closed", () => { main = null; });
   return win;
 }
 
 function showPanel() {
   if (!panel || panel.isDestroyed()) panel = createPanel();
-  // An accessory app does not get key focus by asking nicely, and a panel that
-  // never takes focus blurs the instant it appears, which looks like a crash.
-  app.focus({ steal: true });
   const cursor = screen.getCursorScreenPoint();
   const display = screen.getDisplayNearestPoint(cursor);
   const bounds = panel.getBounds();
@@ -85,6 +89,8 @@ function showPanel() {
     Math.round(display.workArea.x + (display.workArea.width - bounds.width) / 2),
     Math.round(display.workArea.y + 8),
   );
+  // No app.focus({steal:true}) here: activating a regular app raises its own
+  // Space and drops you onto the desktop. The panel takes key focus by itself.
   panel.show();
   panel.focus();
   panel.webContents.focus();
@@ -102,13 +108,14 @@ function showMain() {
   panel?.hide();
 }
 
-function openMain() {
+function openMain(view?: "settings") {
   if (main && !main.isDestroyed()) {
     main.show();
     main.focus();
+    if (view) main.webContents.send("view", view);
     return;
   }
-  main = createMain();
+  main = createMain(view);
 }
 
 /**
@@ -157,8 +164,9 @@ app.whenReady().then(() => {
       }
     });
   }
-  ipcMain.handle("openMainWindow", () => { openMain(); panel?.hide(); });
+  ipcMain.handle("openMainWindow", (_e, view?: "settings") => { openMain(view); panel?.hide(); });
   ipcMain.handle("hidePanel", () => panel?.hide());
+  ipcMain.handle("revealStore", () => shell.showItemInFolder(STORE_PATH));
 
   tray = makeTray();
   tray.on("click", togglePanel);
@@ -181,7 +189,7 @@ app.whenReady().then(() => {
   // hiding the icon is done at runtime, only if asked for.
   void getPrefs().then(applyPrefs).catch(() => {});
   panel = createPanel();
-  if (process.env.RAMZ_SELFTEST) void selfTest(panel);
+  if (process.env.RAMZ_SELFTEST) { panel.once("ready-to-show", showPanel); void selfTest(panel); }
   // Opened by hand? Show it. Opened at login? Stay out of the way.
   else if (!app.getLoginItemSettings().wasOpenedAtLogin) panel.once("ready-to-show", showPanel);
 });
@@ -208,6 +216,7 @@ async function selfTest(win: BrowserWindow) {
         const entries = await bridge.list();
         const config = await bridge.config();
         return {
+          focused: document.activeElement ? document.activeElement.tagName : "none",
           bridgeKeys: Object.keys(bridge).length,
           isPanel: bridge.isPanel,
           entries: entries && entries.ok ? entries.value.length : JSON.stringify(entries),

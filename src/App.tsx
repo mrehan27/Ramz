@@ -6,7 +6,7 @@ import { ExportDialog } from "./components/ExportDialog.tsx";
 import { ImportDialog } from "./components/ImportDialog.tsx";
 import { Button, Tip, cx } from "./components/ui.tsx";
 import { ToastHost } from "./components/Toast.tsx";
-import { inPanel, hidePanel, openMainWindow } from "./lib/bridge.ts";
+import { inPanel, hidePanel, openMainWindow, onView } from "./lib/bridge.ts";
 import { Palette } from "./components/Palette.tsx";
 import { TagsDialog } from "./components/TagsDialog.tsx";
 import { SettingsDialog } from "./components/SettingsDialog.tsx";
@@ -23,6 +23,20 @@ export default function App() {
 /** The menubar surface: the palette, and a way through to everything else. */
 function Panel() {
   const { entries, tagColors, loading, markUsed } = useStore();
+
+  // Settings is a management surface, so the panel hands it to the main window
+  // rather than showing a dialog in a 640px strip.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === ",") {
+        e.preventDefault();
+        void openMainWindow("settings");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
     <div className="flex h-full flex-col">
       {loading ? (
@@ -110,6 +124,8 @@ function Shelf() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  useEffect(() => onView((view) => { if (view === "settings") setDialog("settings"); }), []);
+
   const counts = Object.fromEntries(
     KINDS.map((k) => [k.id, entries.filter((e) => e.kind === k.id).length]),
   ) as Record<KindId, number>;
@@ -186,8 +202,8 @@ function Shelf() {
                 <Tip text="Read aliases and functions out of an existing shell file or folder. The source file is never modified.">
                   <Button onClick={() => setDialog("import")}>Import</Button>
                 </Tip>
-                <Tip text="Write the ticked commands to ~/.config/ramz, and wire your shell to load them.">
-                  <Button onClick={() => setDialog("export")}>Export</Button>
+                <Tip text="Write the ticked commands into your shell files, and wire your shell to load them. One way: Ramz writes, your shell reads.">
+                  <Button onClick={() => setDialog("export")}>Sync to shell</Button>
                 </Tip>
               </>
             ) : undefined,
