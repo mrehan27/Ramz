@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { KINDS, kind as kindDef, type KindId } from "../../shared/kinds.ts";
-import { entryPlaceholders, type Entry, type EntryInput, type Param, type Step } from "../../shared/schema.ts";
+import { entryPlaceholders, type Entry, type EntryInput, type Param, type Step, type Variant } from "../../shared/schema.ts";
 import { Button, Field, Input, Modal, Textarea, Tip, cx } from "./ui.tsx";
 import { TagInput } from "./TagInput.tsx";
 import type { TagColor } from "../../shared/schema.ts";
@@ -14,6 +14,7 @@ const blank = (kind: KindId): EntryInput => ({
   command: "",
   params: [],
   steps: kindDef(kind).defaults?.steps ?? [],
+  variants: [],
   body: "",
   asFunction: false,
   pinned: false,
@@ -22,10 +23,12 @@ const blank = (kind: KindId): EntryInput => ({
 });
 
 export function EntryDialog({
-  entry, kind, onClose, onSave, knownTags, tagColors,
+  entry, kind, focus, onClose, onSave, knownTags, tagColors,
 }: {
   entry?: Entry;
   kind: KindId;
+  /** Which part of the form the caller came here for. */
+  focus?: "variants";
   onClose: () => void;
   onSave: (input: EntryInput) => Promise<void>;
   knownTags: string[];
@@ -33,7 +36,7 @@ export function EntryDialog({
 }) {
   const [form, setForm] = useState<EntryInput>(() => (entry ? { ...entry } : blank(kind)));
   const [error, setError] = useState<string | null>(null);
-  const { fields, exportable } = kindDef(form.kind);
+  const { fields, exportable, bodyField } = kindDef(form.kind);
   const [saving, setSaving] = useState(false);
 
   const set = <K extends keyof EntryInput>(key: K, value: EntryInput[K]) =>
@@ -43,13 +46,14 @@ export function EntryDialog({
         const def = kindDef(value as KindId);
         next.exported = def.defaults?.exported ? f.exported || !entry : false;
         if (def.defaults?.steps && next.steps.length === 0) next.steps = def.defaults.steps;
+        if (!def.fields.variants) next.variants = [];
       }
       return next;
     });
 
   // Params are derived from the template so the two can never drift apart.
   // Runbooks collect theirs from every step, so one fill-in covers the whole thing.
-  const detected = useMemo(() => entryPlaceholders(form), [form.command, form.steps]);
+  const detected = useMemo(() => entryPlaceholders(form), [form.command, form.body, form.steps]);
   useEffect(() => {
     setForm((f) => {
       const kept = new Map(f.params.map((p) => [p.name, p]));
@@ -66,6 +70,24 @@ export function EntryDialog({
 
   const setStep = (i: number, patch: Partial<Step>) =>
     setForm((f) => ({ ...f, steps: f.steps.map((s, j) => (j === i ? { ...s, ...patch } : s)) }));
+
+  const setVariant = (i: number, patch: Partial<Variant>) =>
+    setForm((f) => ({ ...f, variants: f.variants.map((v, j) => (j === i ? { ...v, ...patch } : v)) }));
+
+  const setVariantValue = (i: number, name: string, value: string) =>
+    setVariant(i, { values: { ...form.variants[i].values, [name]: value } });
+
+  /** Clicking the chosen one again clears it, which a radio group cannot do alone. */
+  const toggleDefault = (i: number) =>
+    set("variants", form.variants.map((x, j) => ({ ...x, isDefault: j === i && !form.variants[i].isDefault })));
+
+  // Arriving from "Manage variants" should land on them, with a row ready to fill.
+  const variantsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (focus !== "variants") return;
+    setForm((f) => (f.variants.length > 0 ? f : { ...f, variants: [{ name: "", description: "", values: {}, isDefault: false }] }));
+    variantsRef.current?.scrollIntoView({ block: "center" });
+  }, [focus]);
 
   const submit = async () => {
     setSaving(true);
@@ -118,13 +140,13 @@ export function EntryDialog({
           <Input value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="what it does, in a few words" />
         </Field>
 
-        {fields.body && (
-          <Field label="Note" hint="Wrap commands in ``` fences to make them copyable. Use ## for headings and --- for a divider.">
+        {fields.body && bodyField && (
+          <Field label={bodyField.label} hint={bodyField.hint}>
             <Textarea
               rows={12}
               value={form.body}
               onChange={(e) => set("body", e.target.value)}
-              placeholder={"## Staging\n\nAPI: https://api.staging.example.com\n\n```\nkubectl port-forward svc/api 8080:80\n```"}
+              placeholder={bodyField.placeholder}
             />
           </Field>
         )}
@@ -138,7 +160,7 @@ export function EntryDialog({
         {form.params.length > 0 && (
           <div className="rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
             <p className="mb-2 text-xs font-medium text-neutral-500 dark:text-neutral-400">
-              Arguments (detected from the command). Description and default are optional
+              Placeholders found above. A default is what fills in when nothing else does
             </p>
             <div className="space-y-2">
               {form.params.map((p, i) => (
@@ -153,6 +175,95 @@ export function EntryDialog({
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {fields.variants && (
+          <div ref={variantsRef} className="space-y-2 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
+            <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+              Variants (optional). A row per target, a column per placeholder
+            </p>
+            {form.params.length === 0 ? (
+              <p className="text-xs text-neutral-400">
+                Nothing to vary yet. Put {"{{braces}}"} around the parts that change, and they show up here.
+              </p>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-separate border-spacing-x-1 border-spacing-y-1.5 text-xs">
+                    <thead>
+                      <tr className="text-left text-neutral-400">
+                        <th className="w-40 min-w-[10rem] font-medium">Variant</th>
+                        {form.params.map((p) => (
+                          <th key={p.name} className="min-w-[9rem] font-mono font-medium">{p.name}</th>
+                        ))}
+                        <th className="w-12 font-medium">default</th>
+                        <th className="w-8" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {form.variants.map((v, i) => (
+                        <tr key={i} className="align-top">
+                          <td className="space-y-1">
+                            <Input
+                              value={v.name}
+                              placeholder="Android"
+                              onChange={(e) => setVariant(i, { name: e.target.value })}
+                            />
+                            <Input
+                              value={v.description}
+                              placeholder="note (optional)"
+                              onChange={(e) => setVariant(i, { description: e.target.value })}
+                            />
+                          </td>
+                          {form.params.map((p) => (
+                            <td key={p.name}>
+                              <Textarea
+                                rows={2}
+                                value={v.values[p.name] ?? ""}
+                                placeholder="typed per run"
+                                onChange={(e) => setVariantValue(i, p.name, e.target.value)}
+                              />
+                            </td>
+                          ))}
+                          <td className="pt-2 text-center">
+                            <input
+                              type="radio"
+                              name="variant-default"
+                              title="Open this prompt on this variant. Click it again to go back to Custom."
+                              checked={v.isDefault}
+                              onChange={() => {}}
+                              onClick={() => toggleDefault(i)}
+                            />
+                          </td>
+                          <td>
+                            <Button
+                              variant="danger"
+                              aria-label={`Remove ${v.name || "variant"}`}
+                              onClick={() => set("variants", form.variants.filter((_, j) => j !== i))}
+                            >
+                              ✕
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-neutral-400">
+                  A blank cell is not filled by that variant: it falls back to the default above, or you
+                  type it when you copy.
+                </p>
+                <p className="text-xs text-neutral-400">
+                  {form.variants.find((v) => v.isDefault)
+                    ? `Opens on ${form.variants.find((v) => v.isDefault)!.name || "that variant"}. Click its default again to go back to Custom.`
+                    : "Opens on Custom. Mark one as default to start there instead."}
+                </p>
+                <Button onClick={() => set("variants", [...form.variants, { name: "", description: "", values: {}, isDefault: false }])}>
+                  + Add variant
+                </Button>
+              </>
+            )}
           </div>
         )}
 

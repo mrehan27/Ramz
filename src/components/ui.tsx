@@ -45,6 +45,22 @@ export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTML
   },
 );
 
+export const Select = forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(
+  function Select({ className, ...props }, ref) {
+    return (
+      <select
+        {...props}
+        ref={ref}
+        className={cx(
+          "rounded-md border border-neutral-300 bg-white px-2 py-1 text-sm outline-none",
+          "focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-neutral-500",
+          className,
+        )}
+      />
+    );
+  },
+);
+
 export function Textarea({ className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <textarea

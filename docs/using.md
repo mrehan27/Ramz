@@ -4,13 +4,44 @@
 
 - **Archive** keeps a rarely-used entry out of the lists and out of an empty ⌘K, while
   leaving it fully searchable. **Usage** is counted on every copy, so ⌘K orders by what you
-  actually reach for, and Settings shows the top five plus a counter reset.
+  actually reach for, and **Analytics** in the sidebar shows where those copies went.
+- **The Prompts page is a list of rows**, one open at a time. A row carries the title, its
+  description, the variant dropdown and Copy, which is everything the common case needs: no
+  expanding to copy. **Fill** opens the row on the first value still to type, and the chevron
+  opens it for the fields, the preview and Edit or Delete.
+- **Prompts** are the prompts you hand an agent more than once. Write the body once, put
+  `{{braces}}` around the parts that change, and add a **variant** for each place it lands:
+  a named set of values, so one prompt covers the Android repo and the iOS one without
+  becoming two prompts that drift apart. The variant list is a dropdown on the card: pick one
+  and the form fills, edit anything before copying, or leave it on **Custom** for a run that
+  matches no preset. The last entry in that list opens the editor on the variants themselves,
+  so a prompt can grow one later. Switching variant keeps anything you typed that the variant
+  does not set, so changing platform does not lose the version you just entered. Mark one
+  variant as the **default** and the prompt opens on it, which is what makes a prompt with no
+  per-placeholder defaults copyable without picking anything first.
+- **In ⌘K** the variants are buttons rather than a dropdown, because a native menu cannot open
+  over the panel. Focus starts on them, **1-9** picks one, ←/→ walks the row, and picking one
+  jumps to the first value still to type. Fields a variant has already answered are not shown
+  at all, so a variant that fills everything leaves nothing but enter to press. Each row
+  carries its kind's icon. The panel resets to an empty search every time it hides, so it never
+  reopens halfway through the last thing you copied.
 - **Notes** hold reference text rather than commands: markdown-lite, where ``` fences become
   copyable blocks, `##` is a heading and `---` a rule. Placeholders work in a note body too.
 - **⌘K** opens a lookup palette: type, ↑↓, Enter copies. Commands that need arguments open
   a fill-in step first instead of copying a template with holes in it. Processes are left
   out, since there is nothing to copy.
-- **Search** is fuzzy over name, title, description, command and tags; tag chips filter.
+- **Search** is fuzzy over name, title, description and tags, and literal over long bodies.
+  It also takes filters, typed in any order and in any search box:
+
+  | typed | means |
+  |---|---|
+  | `prompt:` `prompts:` `p:` | only prompts. Every kind answers to its own name, plural and first letter |
+  | `cmd:` `command:` | aliases and snippets together, the things that run |
+  | `#git` | only entries tagged `git`, matched on a prefix so `#and` finds `android` |
+  | `prompt: release` | both at once. `prompt:release` works too |
+
+  Anything that is not a filter stays search text, so a query with a colon in it (a URL, a
+  ratio) still searches for itself. ⌘K shows the active filters above the list.
 - **Pin** (★) floats a command to the top of its list, and pinned commands get their own
   group. Sorting is otherwise alphabetical by title.
 - **Group by tag** buckets cards under their first tag; groups collapse on click, with
@@ -23,7 +54,7 @@
   is a shortcut to the colour palette.
 - **Tag entry** on a command suggests what already exists and marks anything unrecognised as
   a new tag, so a typo cannot quietly fork `android` into `andriod`.
-- **Copy** on a command with arguments opens the fill-in form and focuses the first field
+- **Fill** on a command with arguments opens the fill-in form and focuses the first field
   instead of copying a template full of `{{placeholders}}`. Arguments that have a default
   can be copied straight away, using the defaults. Typed values stick around after a copy,
   which helps when you copy the same command with one argument changed, and ↺ clears them.

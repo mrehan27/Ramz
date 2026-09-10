@@ -21,12 +21,13 @@ handful you type every day.
 *Ramz* means symbol, code, or cipher: what you reach for when you cannot remember the
 incantation itself.
 
-Four kinds of entry:
+Five kinds of entry:
 
 | | |
 |---|---|
 | **Alias** | exported to your shell as a real alias or function |
 | **Snippet** | copy only, never exported, and most things belong here |
+| **Prompt** | a prompt you hand an agent again and again, with a variant per repo or platform |
 | **Runbook** | ordered steps, filled in once and copied as a script or step by step |
 | **Note** | reference text: endpoints, hosts, values you look up rather than run |
 

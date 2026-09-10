@@ -9,6 +9,7 @@ import { KINDS, type KindId } from "../shared/kinds.ts";
 import type { Entry, EntryInput, TagColor } from "../shared/schema.ts";
 import { ListPage } from "./pages/ListPage.tsx";
 import { NotesPage } from "./pages/NotesPage.tsx";
+import { PromptsPage } from "./pages/PromptsPage.tsx";
 import { RunbooksPage } from "./pages/RunbooksPage.tsx";
 
 /** Every page gets the same props; a page uses what it needs. */
@@ -29,6 +30,7 @@ export type PageProps = {
 const PAGES: Record<KindId, (props: PageProps) => ReactNode> = {
   alias: (p) => <ListPage kind="alias" {...p} />,
   snippet: (p) => <ListPage kind="snippet" {...p} />,
+  prompt: (p) => <PromptsPage {...p} />,
   runbook: (p) => <RunbooksPage {...p} />,
   note: (p) => <NotesPage {...p} />,
 };

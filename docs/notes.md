@@ -20,6 +20,53 @@ live only in conversation.
   A plain window plus `app.focus({steal:true})` activates the app, and activating a regular
   app raises its own Space, which drops you out of a full-screen window onto the desktop. An
   NSPanel takes key focus without activating, so the panel overlays whatever is in front.
+- **A variant is a named set of placeholder values, not a copy of the prompt.** The prompt
+  body is written once; a variant only supplies values for the `{{placeholders}}` in it. That
+  keeps the 90% that is shared in one place, and it is why variants are a generic field on
+  `Entry` rather than something prompt-shaped. Anything a variant leaves unset still has to be
+  typed, which is deliberate: the per-run detail should not hide inside a preset.
+- **The panel refetches on show, via `visibilitychange`.** `useStore` loads once on mount and
+  the panel window is hidden rather than closed, so its entries were frozen at launch: a prompt
+  added in the main window never appeared in ⌘K until the app restarted.
+- **Views start at the top.** One scroll container holds every page, so a scrolled list handed
+  its offset to the next view and it opened halfway down.
+- **Prompt rows collapse, and copying does not need them open.** A prompt card showed five
+  stacked blocks (header, description, dropdown, every field, preview), so a handful of prompts
+  filled several screens. The row keeps only identity and the action; one card opens at a time.
+  Copy stays on the row because the default variant usually fills everything, and the blocked
+  case says `Fill` and opens the row focused on the first blank.
+- **Prompt cards are keyed on `id:updatedAt`.** Their variant and values come from `useState`
+  initialisers, which React keeps across a re-render, so a newly marked default only appeared
+  after leaving the page and coming back. The key makes an edited card rebuild itself; a copy
+  does not bump `updatedAt`, so it does not throw away what you were typing.
+- **No `Tip` inside a scroll container.** It is absolutely positioned, so `overflow: auto`
+  clips it: on the variants grid it was cut 11px above and 96px past the right edge. Dense
+  places inside a scroller use the native `title` instead, which the browser draws on top.
+- **The default variant lives on the variant, not on the entry.** A flag survives renaming;
+  a `defaultVariant: string` on the entry would have to be kept in step with the name. The
+  schema allows at most one.
+- **The panel resets on hide, via `visibilitychange`.** It is hidden rather than unmounted, so
+  its React state survives; without a reset it reopened on the fill step of whatever you last
+  copied. That one event covers every hide path: Esc, click away, the menubar icon, a copy.
+- **No native `<select>` in the panel.** A native dropdown opens an NSMenu, which needs the
+  app to be active. The panel takes key focus without activating (that is the whole point of
+  the NSPanel), so the menu never opened and the control looked dead. The panel uses buttons
+  instead: focus starts on them, 1-9 picks one, and the arrows move along the row.
+- **Switching variant keeps what you typed.** Replacing every value wiped the one field the
+  variant does not own (the version), which silently disabled Copy, so the clipboard kept
+  whatever was in it and the whole thing read as "Copy ignores the dropdown". Only
+  placeholders some variant owns are replaced; see `valuesFor`.
+- **Long bodies are searched literally, not fuzzily.** Fuse over a page of prose finds a
+  match for nearly any query, so indexing prompt and note bodies as fuzzy keys made every
+  prompt match every search. `SearchDoc.text` is matched by substring and appended below the
+  ranked hits; only short fields (title, description, tags, names) stay fuzzy.
+- **The palette ignores Enter while a `<select>` has focus.** A native dropdown answers its
+  own Enter, and the palette copying on that same keystroke used the value the select was in
+  the middle of changing, which read as "copy always gives the default".
+- **Analytics is a page, not a Settings section.** Settings is now only what you change
+  (paths, app behaviour, shell status); what you observe moved out to its own view. It counts
+  copies out of Ramz only, so an alias typed in your own shell never appears there, and the
+  page says so rather than implying it measures your shell.
 - **"Sync to shell", never "export".** The operation regenerates files Ramz owns from the
   entries; nothing portable comes out of it. Moving machines is copying `commands.json`, which
   is what Settings → Your data says.
@@ -60,6 +107,15 @@ live only in conversation.
 
 ## Traps already hit (do not rediscover)
 
+- **A dead panel renderer looks like a broken shortcut.** The panel has `vibrancy` and no
+  frame, so if its renderer process goes, the window still reports `isVisible()` true and
+  paints nothing: pressing the hotkey called `showPanel`, which did its job and showed an
+  invisible window, and quitting the app was the only way back. `watchPanel` now rebuilds it on
+  `render-process-gone`, a real `did-fail-load` (not an aborted -3) or `unresponsive`, at most
+  three times, and `showPanel` checks `webContents.isCrashed()` first. Verified by killing the
+  renderer process and watching it come back. The tray menu reports panel and renderer state,
+  because a packaged app has no console to read.
+
 - `ELECTRON_RUN_AS_NODE=1` is set in the VS Code terminal; inherited, the electron binary
   runs as plain node and `require("electron")` returns a path. The npm scripts clear it,
   and so does `install:app` before calling `open`, because `open` forwards the caller's
@@ -91,7 +147,10 @@ live only in conversation.
 3. Tests. See the verification methods in [development.md](development.md) for what they
    should cover first: the shell renderer and the quoting rules.
 4. Notes cannot reach the palette today, because they have no single thing to copy. Worth
-   revisiting: a note is often exactly what you are hunting for.
+   revisiting: a note is often exactly what you are hunting for. Prompts do reach it, via
+   `copyText` on the kind, which is the shape a note would need too.
+5. Variants only substitute values. A prompt whose platforms differ by a whole paragraph has
+   to keep that paragraph in a placeholder, which works but reads oddly in the editor.
 
 ---
 

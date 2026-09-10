@@ -12,6 +12,18 @@ export const ParamSchema = z.object({
   required: z.boolean().default(false),
 });
 
+/**
+ * A named set of placeholder values: the 10% of a prompt that changes per repo
+ * or platform, so the other 90% can be written once.
+ */
+export const VariantSchema = z.object({
+  name: z.string().min(1, "a variant needs a name"),
+  description: z.string().default(""),
+  values: z.record(z.string(), z.string()).default({}),
+  /** Applied when you open the entry, so the common case takes no clicks. */
+  isDefault: z.boolean().default(false),
+});
+
 export const StepSchema = z.object({
   title: z.string().min(1),
   body: z.string().default(""),
@@ -31,6 +43,8 @@ export const EntrySchema = z
     command: z.string().default(""),
     params: z.array(ParamSchema).default([]),
     steps: z.array(StepSchema).default([]),
+    /** Presets for the placeholders, offered before you copy. Prompts use these. */
+    variants: z.array(VariantSchema).default([]),
     /** Free-form reference text for notes: values, URLs, fenced commands. */
     body: z.string().default(""),
     /** Force function form even without arguments (multi-line bodies, or to match an existing definition). */
@@ -48,6 +62,16 @@ export const EntrySchema = z
   })
   // Each kind states its own requirements; see shared/kinds.ts.
   .superRefine((e, ctx) => {
+    const seen = new Set<string>();
+    for (const v of e.variants) {
+      if (seen.has(v.name)) {
+        ctx.addIssue({ code: "custom", path: ["variants"], message: `two variants named "${v.name}"` });
+      }
+      seen.add(v.name);
+    }
+    if (e.variants.filter((v) => v.isDefault).length > 1) {
+      ctx.addIssue({ code: "custom", path: ["variants"], message: "only one variant can be the default" });
+    }
     for (const issue of kind(e.kind).validate(e as Entry)) {
       ctx.addIssue({ code: "custom", path: [issue.path], message: issue.message });
     }
@@ -82,6 +106,7 @@ export const EntryInputSchema = z.object({
   command: z.string().default(""),
   params: z.array(ParamSchema).default([]),
   steps: z.array(StepSchema).default([]),
+  variants: z.array(VariantSchema).default([]),
   body: z.string().default(""),
   asFunction: z.boolean().default(false),
   pinned: z.boolean().default(false),
@@ -91,6 +116,7 @@ export const EntryInputSchema = z.object({
 
 export type Param = z.infer<typeof ParamSchema>;
 export type Step = z.infer<typeof StepSchema>;
+export type Variant = z.infer<typeof VariantSchema>;
 export type Kind = z.infer<typeof KindSchema>;
 export type Entry = z.infer<typeof EntrySchema>;
 export type EntryInput = z.infer<typeof EntryInputSchema>;
@@ -116,6 +142,17 @@ export function entryPlaceholders(
   }
   return [...seen];
 }
+
+/**
+ * Whether copying should stop and ask first: a placeholder with nothing to fall
+ * back on, or a variant to choose between. Everything else copies in one click.
+ */
+export function needsFill(entry: { params: Param[]; variants: Variant[] }) {
+  return entry.variants.length > 0 || entry.params.some((p) => !p.default);
+}
+
+/** The variant to start on, if the author named one. */
+export const defaultVariant = (variants: Variant[]) => variants.find((v) => v.isDefault) ?? null;
 
 /**
  * Substitute {{name}} with values, falling back to the param default. Anything with

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, nativeImage, screen, shell } from "electron";
+import { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, nativeImage, powerMonitor, screen, shell } from "electron";
 import path from "node:path";
 import { RamzError, getPrefs } from "../server/core.ts";
 import { STORE_PATH } from "../server/store.ts";
@@ -61,8 +61,34 @@ function createPanel() {
     if (Date.now() - shownAt < 400 || win.webContents.isDevToolsOpened()) return;
     win.hide();
   });
+  watchPanel(win);
   void load(win, true);
   return win;
+}
+
+/**
+ * A dead renderer leaves a window that is visible and paints nothing: with
+ * vibrancy and no frame there is nothing to see, and no press recovers it, which
+ * is why quitting was the only way out. Rebuild instead, a few times at most.
+ */
+function watchPanel(win: BrowserWindow) {
+  const rebuild = (why: string) => {
+    if (win.isDestroyed()) return;
+    panelTrouble = why;
+    console.error(`panel rebuilt: ${why}`);
+    if (rebuilds >= 3) return;
+    rebuilds += 1;
+    const wasVisible = win.isVisible();
+    win.destroy();
+    panel = createPanel();
+    if (wasVisible) panel.once("ready-to-show", showPanel);
+  };
+  win.webContents.on("render-process-gone", (_e, details) => rebuild(`renderer ${details.reason}`));
+  win.webContents.on("did-fail-load", (_e, code, desc) => {
+    // -3 is an aborted load, which ordinary navigation produces.
+    if (code !== -3) rebuild(`load failed ${code} ${desc}`);
+  });
+  win.on("unresponsive", () => rebuild("unresponsive"));
 }
 
 /** The full UI, for managing entries rather than reaching for one. */
@@ -80,7 +106,10 @@ function createMain(view?: "settings") {
 }
 
 function showPanel() {
-  if (!panel || panel.isDestroyed()) panel = createPanel();
+  if (!panel || panel.isDestroyed() || panel.webContents.isCrashed()) {
+    if (panel && !panel.isDestroyed()) { panelTrouble = "renderer was crashed"; panel.destroy(); }
+    panel = createPanel();
+  }
   const cursor = screen.getCursorScreenPoint();
   const display = screen.getDisplayNearestPoint(cursor);
   const bounds = panel.getBounds();
@@ -94,11 +123,61 @@ function showPanel() {
   panel.show();
   panel.focus();
   panel.webContents.focus();
+  const box = panel.getBounds();
+  lastShow = `${panel.isVisible() ? "shown" : "did not show"} at ${box.x},${box.y}`;
+}
+
+/** Which hotkeys the last attempt could not claim. Empty when all is well. */
+let hotkeysLost: string[] = [];
+/** Whether the OS is actually delivering the keystroke, and what show() did with it. */
+const fired: Record<string, { count: number; at: number }> = {};
+let lastShow = "";
+/** Why the panel was last rebuilt, and how often, so a crash loop is visible. */
+let panelTrouble = "";
+let rebuilds = 0;
+
+/**
+ * Registration was done once at launch, and a failure only reached a stdout
+ * nobody reads: the app then ran for its whole life with no hotkeys. A copy
+ * being replaced still holds them for a moment, and they can be lost later, so
+ * re-arm on every chance rather than trust the first attempt.
+ */
+function armHotkeys() {
+  hotkeysLost = [];
+  for (const [key, action] of [[HOTKEY, togglePanel], [HOTKEY_MAIN, showMain]] as const) {
+    globalShortcut.unregister(key);
+    const count = () => {
+      fired[key] = { count: (fired[key]?.count ?? 0) + 1, at: Date.now() };
+      action();
+    };
+    if (!globalShortcut.register(key, count)) hotkeysLost.push(key);
+  }
+  if (hotkeysLost.length > 0) console.error(`hotkeys not registered: ${hotkeysLost.join(", ")}`);
+  return hotkeysLost;
+}
+
+/** Keep trying for a few seconds: a copy shutting down releases them shortly. */
+function armHotkeysSoon(delays: number[] = [500, 1000, 2000, 4000, 8000]) {
+  if (armHotkeys().length === 0 || delays.length === 0) return;
+  setTimeout(() => armHotkeysSoon(delays.slice(1)), delays[0]).unref?.();
 }
 
 function togglePanel() {
-  if (panel && !panel.isDestroyed() && panel.isVisible()) panel.hide();
-  else showPanel();
+  if (!panel || panel.isDestroyed() || !panel.isVisible()) return showPanel();
+  panel.hide();
+  // A window that reports itself visible but is not on screen would swallow
+  // every press from here on, since each one would just hide it again.
+  if (panel.isVisible()) {
+    panel.destroy();
+    panel = createPanel();
+    showPanel();
+  }
+}
+
+/** What the menubar menu reports, so a wedged panel is visible without a console. */
+function panelState() {
+  if (!panel || panel.isDestroyed()) return "none";
+  return panel.isVisible() ? "open" : "hidden";
 }
 
 /** From anywhere: the full window, with the panel out of the way. */
@@ -169,20 +248,30 @@ app.whenReady().then(() => {
   ipcMain.handle("revealStore", () => shell.showItemInFolder(STORE_PATH));
 
   tray = makeTray();
-  tray.on("click", togglePanel);
-  tray.on("right-click", () => tray?.popUpContextMenu(Menu.buildFromTemplate([
+  // Any use of the menubar icon is also a chance to get the hotkeys back.
+  tray.on("click", () => { armHotkeys(); togglePanel(); });
+  // No re-arming here: this menu has to report the state as it found it.
+  tray.on("right-click", () => { tray?.popUpContextMenu(Menu.buildFromTemplate([
     { label: "Quick search…", accelerator: HOTKEY, click: togglePanel },
     { label: "Open main window", accelerator: HOTKEY_MAIN, click: openMain },
     { type: "separator" },
     { label: "Open the shell directory", click: () => void shell.openPath(path.join(process.env.HOME ?? "", ".config", "ramz")) },
     { type: "separator" },
     { label: "Quit Ramz", role: "quit" },
-  ])));
+    { type: "separator" },
+    { label: `Panel ${panelState()} · last ${lastShow || "not shown yet"}`, enabled: false },
+    {
+      label: `Renderer ${panel && !panel.isDestroyed() && !panel.webContents.isCrashed() ? "alive" : "gone"}${panelTrouble ? ` · ${panelTrouble}` : ""}${rebuilds > 0 ? ` · rebuilt ${rebuilds}×` : ""}`,
+      enabled: false,
+    },
+    { label: `Registered: ${[HOTKEY, HOTKEY_MAIN].filter((k) => globalShortcut.isRegistered(k)).length}/2${hotkeysLost.length > 0 ? ` · failed: ${hotkeysLost.join(", ")}` : ""}`, enabled: false },
+    { label: `Quick search key pressed ${fired[HOTKEY]?.count ?? 0}×${fired[HOTKEY] ? `, last ${Math.round((Date.now() - fired[HOTKEY].at) / 1000)}s ago` : ""}`, enabled: false },
+  ])); });
 
-  for (const [key, action] of [[HOTKEY, togglePanel], [HOTKEY_MAIN, showMain]] as const) {
-    if (globalShortcut.register(key, action)) console.log(`hotkey ${key} registered`);
-    else console.error(`could not register ${key}: another app owns it`);
-  }
+  armHotkeysSoon();
+  // Both are known moments for macOS to drop a global hotkey.
+  powerMonitor.on("resume", () => armHotkeys());
+  powerMonitor.on("unlock-screen", () => armHotkeys());
 
   // A regular app on purpose: a Dock icon to click, a place in cmd-tab, and a
   // tile the Dock will actually keep. LSUIElement would take all three away, so
@@ -230,6 +319,7 @@ async function selfTest(win: BrowserWindow) {
       }
     })()`);
     if (typeof result?.text === "string") result.text = result.text.split("\n").join(" | ");
+    result.hotkeys = hotkeysLost.length === 0 ? "registered" : `lost: ${hotkeysLost.join(", ")}`;
     console.log("SELFTEST " + JSON.stringify(result, null, 2));
   } catch (e) {
     console.error("SELFTEST threw:", (e as Error).message);

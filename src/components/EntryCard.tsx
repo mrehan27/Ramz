@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { resolveCommand, type Entry } from "../../shared/schema.ts";
+import { needsFill, resolveCommand, type Entry } from "../../shared/schema.ts";
 import type { TagColor } from "../../shared/schema.ts";
 import { Badge, Button, Input, Tip, cx } from "./ui.tsx";
 import { TagBadge } from "./TagBadge.tsx";
@@ -7,6 +7,9 @@ import { CopyButton } from "./CopyButton.tsx";
 import { CommandText } from "./CommandText.tsx";
 
 const CLAMP = 3;
+
+/** Fill, Copy and Copied are one button in three states, so they hold one width. */
+const ACTION = "min-w-[5rem] justify-center";
 
 export function EntryCard({
   entry, onEdit, onDelete, onToggleExport, onTogglePin, onToggleArchive, onUsed, tagColors,
@@ -30,13 +33,11 @@ export function EntryCard({
   const missing = entry.params.filter((p) => !values[p.name]?.trim() && !p.default);
   const dirty = Object.values(values).some((v) => v.trim());
   // Nothing to type only when every argument can fall back to a default.
-  const needsInput = entry.params.some((p) => !p.default);
+  const needsInput = needsFill(entry);
 
   useEffect(() => {
     if (filling) firstField.current?.focus();
   }, [filling]);
-
-  const copyLabel = hasParams ? (needsInput ? "Copy…" : "Copy") : "Copy";
 
   // Long bodies (the seven-step uninstall, say) would otherwise dominate the list.
   const lines = entry.command.split("\n");
@@ -93,10 +94,10 @@ export function EntryCard({
           )}
           {hasParams && needsInput ? (
             <Tip text="This command needs arguments. Fill them in and copy the finished line.">
-              <Button variant="primary" onClick={() => setFilling(true)}>{copyLabel}</Button>
+              <Button variant="primary" className={ACTION} onClick={() => setFilling(true)}>Fill</Button>
             </Tip>
           ) : (
-            <CopyButton value={hasParams ? resolved : entry.command} variant="primary" label={copyLabel} onCopied={onUsed} />
+            <CopyButton value={hasParams ? resolved : entry.command} variant="primary" className={ACTION} onCopied={onUsed} />
           )}
           {onToggleArchive && (
             <Tip text={entry.archived ? "Bring it back into the lists" : "Keep it, but out of the way. Still found by searching"}>
@@ -150,10 +151,10 @@ export function EntryCard({
             <div className="flex items-center gap-2">
               {missing.length > 0 ? (
                 <Tip text={`Fill in ${missing.map((p) => p.name).join(", ")} first. There is no default to fall back on.`}>
-                  <Button variant="primary" disabled>Copy filled</Button>
+                  <Button variant="primary" className={ACTION} disabled>Copy</Button>
                 </Tip>
               ) : (
-                <CopyButton value={resolved} label="Copy filled" variant="primary" onCopied={onUsed} />
+                <CopyButton value={resolved} variant="primary" className={ACTION} onCopied={onUsed} />
               )}
               {dirty && (
                 <Tip text="Clear what you typed and go back to the defaults">
@@ -182,7 +183,7 @@ export function EntryCard({
             )}
           </div>
           {onToggleExport && (
-            <Tip text="Include this in ~/.config/ramz/aliases.sh the next time you export.">
+            <Tip text="Include this in ~/.config/ramz/aliases.sh the next time you sync to the shell.">
               <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
                 <input type="checkbox" checked={entry.exported} onChange={onToggleExport} />
                 export to shell

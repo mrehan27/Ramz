@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { kind, type KindId } from "../../shared/kinds.ts";
 import type { Entry, EntryInput } from "../../shared/schema.ts";
-import { allTags, useSearch } from "../lib/search.ts";
+import { allTags, byPin, useSearch } from "../lib/search.ts";
 import { EntryCard } from "../components/EntryCard.tsx";
 import { EntryDialog } from "../components/EntryDialog.tsx";
 import { SearchBar } from "../components/SearchBar.tsx";
@@ -9,12 +9,6 @@ import { Button, Tip, cx } from "../components/ui.tsx";
 import type { TagColor } from "../../shared/schema.ts";
 
 const UNTAGGED = "untagged";
-
-/** Pinned first, then alphabetical. Search order wins when there is a query. */
-function byPin(a: Entry, b: Entry) {
-  if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-  return a.title.localeCompare(b.title);
-}
 
 export function ListPage({
   kind: id, entries, onSave, onDelete, onToggleExport, onTogglePin, onToggleArchive, onUsed, actions,

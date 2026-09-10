@@ -131,6 +131,60 @@
       "updatedAt": "2026-08-24T09:47:23.698394Z"
     },
     {
+      "id": "3c1f6a20-9b7e-4d2c-8f51-0a4d9e73b118",
+      "kind": "prompt",
+      "name": "",
+      "title": "Port a feature to another repo",
+      "description": "One brief, one variant per platform",
+      "tags": [
+        "agents"
+      ],
+      "command": "",
+      "params": [
+        {
+          "name": "feature",
+          "description": "what to port",
+          "default": "",
+          "required": true
+        },
+        {
+          "name": "platform",
+          "description": "",
+          "default": "",
+          "required": true
+        },
+        {
+          "name": "test_cmd",
+          "description": "the repo's real test command",
+          "default": "",
+          "required": true
+        }
+      ],
+      "steps": [],
+      "variants": [
+        {
+          "name": "Android",
+          "description": "the gradle repo",
+          "values": {
+            "platform": "Android",
+            "test_cmd": "./gradlew test"
+          }
+        },
+        {
+          "name": "iOS",
+          "description": "the xcode repo",
+          "values": {
+            "platform": "iOS",
+            "test_cmd": "xcodebuild test"
+          }
+        }
+      ],
+      "body": "Port {{feature}} to the {{platform}} SDK.\n\nRead the existing implementation first and match its conventions rather than inventing new ones.\nWrite a failing test for each behaviour before you implement it.\nRun {{test_cmd}} and paste the actual output. Do not call it passing without that.\nKeep the diff scoped to this feature: no CI changes, no dependency bumps, no unrelated refactors.",
+      "exported": false,
+      "createdAt": "2026-08-24T09:47:23.698394Z",
+      "updatedAt": "2026-08-24T09:47:23.698394Z"
+    },
+    {
       "id": "78f49ae0-f8ae-48fb-ad38-7a0d02f529b9",
       "kind": "runbook",
       "name": "",

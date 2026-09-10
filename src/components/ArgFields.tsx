@@ -23,6 +23,7 @@ export function ArgFields({
               {p.description && <span className="ml-1 font-sans">· {p.description}</span>}
             </span>
             <Input
+              data-arg={p.name}
               autoFocus={i === 0}
               value={values[p.name] ?? ""}
               placeholder={p.default ? `${p.default} (default)` : p.name}

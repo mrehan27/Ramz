@@ -2,14 +2,16 @@
 
 ## The kind registry
 
-A kind of entry (alias, snippet, runbook, note) declares itself in one place:
+A kind of entry (alias, snippet, prompt, runbook, note) declares itself in one place:
 `shared/kinds.ts` for everything data-level, `src/kinds.tsx` for the page that renders it.
 
 ```ts
 { id, plural, singular, icon, blurb,
   exportable,   // reaches the shell
   inPalette,    // has one thing to copy, so it belongs in the palette
+  copyText,     // what that one thing is: a command, or a whole prompt body
   fields,       // which editor fields to show
+  bodyField,    // wording for the free-text field, since a note is not a prompt
   defaults,     // what a new one starts as
   search,       // the strings search should index, in three weights
   validate }    // kind-specific rules, run by the schema
@@ -47,16 +49,43 @@ links/shell -> ~/.config/ramz          generated shell files
 links/store -> ~/.local/share/ramz     the entry store
 ```
 
-One entry type covers all three pages:
+One entry type covers every page:
 
 | kind | page | exported |
 |---|---|---|
 | `alias` | Aliases | yes, when `exported: true` |
 | `snippet` | Snippets | never |
+| `prompt` | Prompts | never |
 | `runbook` | Runbooks | never |
 | `note` | Notes | never |
 
-A new page is a new filter over the same store, so add a row to `NAV` in `src/App.tsx`.
+A new page is a new filter over the same store, so add a row to `KINDS` and one to `PAGES`.
+Analytics is the exception that proves it: a view rather than a kind, so it sits outside the
+registry and is switched on directly in `src/App.tsx`.
+
+## Search filters
+
+`shared/query.ts` splits what you typed into kind filters, tag filters and the text to match.
+The kind words come from the registry (`id`, plural, singular, first letter, plus `keywords`),
+so a new kind is filterable the moment it exists, with nothing to add here. One word may name
+two kinds: `cmd:` is both aliases and snippets.
+
+## Variants
+
+A prompt is usually 90% the same wherever it lands, so the body is written once with
+`{{placeholders}}` and each variant supplies a named set of values for them:
+
+```ts
+variants: [{ name: "Android", description: "", values: { platform: "Android", test_cmd: "./gradlew test" } }]
+```
+
+Nothing about this is prompt-specific: variants are a field on `Entry`, and any kind can opt
+in with `fields.variants`. Picking one fills the form, and you can still overwrite anything
+before you copy, which is what keeps a variant from becoming a second copy of the prompt.
+
+They are a dropdown rather than chips because the set is small, fixed and named (Android,
+iOS), which is what a dropdown is for. "Custom" is always the first option, so a prompt whose
+values are different every time is a first-class case rather than an empty preset.
 
 ## Config
 

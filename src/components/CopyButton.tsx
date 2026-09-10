@@ -3,11 +3,12 @@ import { Button } from "./ui.tsx";
 import { useToast } from "./Toast.tsx";
 
 export function CopyButton({
-  value, label = "Copy", variant = "outline", onCopied,
+  value, label = "Copy", variant = "outline", className, onCopied,
 }: {
   value: string;
   label?: string;
   variant?: "outline" | "primary" | "ghost";
+  className?: string;
   onCopied?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
@@ -22,6 +23,7 @@ export function CopyButton({
   return (
     <Button
       variant={variant}
+      className={className}
       disabled={!value.trim()}
       onClick={async () => {
         await navigator.clipboard.writeText(value);

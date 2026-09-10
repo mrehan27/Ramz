@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Entry, Prefs } from "../../shared/schema.ts";
+import type { Prefs } from "../../shared/schema.ts";
 import { api, type Config } from "../lib/api.ts";
 import { inApp, revealStore } from "../lib/bridge.ts";
 import { Button, Info, Modal, cx } from "./ui.tsx";
@@ -7,9 +7,8 @@ import { CopyButton } from "./CopyButton.tsx";
 import { useToast } from "./Toast.tsx";
 
 export function SettingsDialog({
-  entries, config, onClose, onChanged,
+  config, onClose, onChanged,
 }: {
-  entries: Entry[];
   config: Config | null;
   onClose: () => void;
   onChanged: () => void;
@@ -28,14 +27,6 @@ export function SettingsDialog({
       setBusy(false);
     }
   };
-
-  const copies = entries.reduce((n, e) => n + e.useCount, 0);
-  const counted = entries.filter((e) => e.useCount > 0);
-  const top = [...counted].sort((a, b) => b.useCount - a.useCount).slice(0, 5);
-  const byKind = entries.reduce<Record<string, number>>((acc, e) => {
-    acc[e.kind] = (acc[e.kind] ?? 0) + 1;
-    return acc;
-  }, {});
 
   return (
     <Modal title="Settings" onClose={onClose}>
@@ -82,49 +73,6 @@ export function SettingsDialog({
           <ShellStatus config={config} />
         </section>
 
-        <section className="space-y-2 border-t border-neutral-200 pt-4 dark:border-neutral-800">
-          <h3 className="font-semibold">Library</h3>
-          <p className="text-neutral-600 dark:text-neutral-400">
-            {entries.length} entries: {Object.entries(byKind).map(([k, n]) => `${n} ${k}${n === 1 ? "" : "s"}`).join(", ")}
-            {entries.some((e) => e.archived) && `, ${entries.filter((e) => e.archived).length} archived`}
-          </p>
-        </section>
-
-        <section className="space-y-2 border-t border-neutral-200 pt-4 dark:border-neutral-800">
-          <h3 className="flex items-center gap-1.5 font-semibold">
-            Usage
-            <Info text="Counted whenever you copy something from Ramz. The evidence for what deserves to be a shell alias." />
-          </h3>
-          <p className="text-neutral-600 dark:text-neutral-400">
-            {copies} {copies === 1 ? "copy" : "copies"} across {counted.length} {counted.length === 1 ? "entry" : "entries"}.
-          </p>
-          {top.length > 0 && (
-            <ol className="space-y-0.5 text-xs text-neutral-500 dark:text-neutral-400">
-              {top.map((e) => (
-                <li key={e.id}>
-                  <span className="font-mono">{e.useCount}×</span> {e.name || e.title}
-                </li>
-              ))}
-            </ol>
-          )}
-          <Button
-            variant="danger"
-            disabled={busy || copies === 0}
-            onClick={async () => {
-              if (!confirm(`Reset counters on ${counted.length} entries? The entries themselves stay.`)) return;
-              setBusy(true);
-              try {
-                const res = await api.resetUsage();
-                toast({ title: `Reset ${res.cleared} counter${res.cleared === 1 ? "" : "s"}`, tone: "warn" });
-                onChanged();
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
-            Reset all counters
-          </Button>
-        </section>
       </div>
 
       <div className="mt-5 flex justify-end border-t border-neutral-200 pt-3 dark:border-neutral-800">

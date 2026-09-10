@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useStore } from "./lib/useStore.ts";
 import { KINDS, page as renderPage, type KindId } from "./kinds.tsx";
 import { kind } from "../shared/kinds.ts";
@@ -10,6 +10,7 @@ import { inPanel, hidePanel, openMainWindow, onView } from "./lib/bridge.ts";
 import { Palette } from "./components/Palette.tsx";
 import { TagsDialog } from "./components/TagsDialog.tsx";
 import { SettingsDialog } from "./components/SettingsDialog.tsx";
+import { AnalyticsPage } from "./pages/AnalyticsPage.tsx";
 
 
 export default function App() {
@@ -22,7 +23,15 @@ export default function App() {
 
 /** The menubar surface: the palette, and a way through to everything else. */
 function Panel() {
-  const { entries, tagColors, loading, markUsed } = useStore();
+  const { entries, tagColors, loading, markUsed, refresh } = useStore();
+
+  // The panel window is hidden rather than closed, so its entries would stay as
+  // they were at launch: anything added in the main window never showed up here.
+  useEffect(() => {
+    const onVisibility = () => { if (!document.hidden) void refresh(); };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [refresh]);
 
   // Settings is a management surface, so the panel hands it to the main window
   // rather than showing a dialog in a 640px strip.
@@ -63,6 +72,9 @@ function Panel() {
   );
 }
 
+/** The sidebar shows the kinds, plus the views that are not a kind. */
+type View = KindId | "analytics";
+
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
     <p className="px-2 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
@@ -80,17 +92,23 @@ function Kbd({ children }: { children: ReactNode }) {
 }
 
 function SidebarButton({
-  icon, label, onClick, children,
+  icon, label, onClick, active, children,
 }: {
   icon: string;
   label: string;
   onClick: () => void;
+  active?: boolean;
   children?: ReactNode;
 }) {
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-neutral-600 transition hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+      className={cx(
+        "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition",
+        active
+          ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+          : "text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800",
+      )}
     >
       <span className="w-4 text-center opacity-60">{icon}</span>
       <span className="flex-1 text-left">{label}</span>
@@ -104,9 +122,14 @@ function Shelf() {
     entries, config, tagColors, error, loading, refresh,
     save, remove, toggleExport, togglePin, toggleArchive, markUsed, setTagColor, renameTag, deleteTag,
   } = useStore();
-  const [current, setCurrent] = useState<KindId>("alias");
+  const [current, setCurrent] = useState<View>("alias");
   const [dialog, setDialog] = useState<"export" | "import" | "tags" | "settings" | null>(null);
   const [palette, setPalette] = useState(false);
+  const pane = useRef<HTMLElement>(null);
+
+  // Each view starts at the top. Otherwise a scrolled page carries its offset
+  // into the next one and opens halfway down.
+  useEffect(() => { pane.current?.scrollTo({ top: 0 }); }, [current]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -170,14 +193,20 @@ function Shelf() {
           <span className="text-xs opacity-50">{new Set(entries.flatMap((e) => e.tags)).size}</span>
         </SidebarButton>
 
-        <div className="mt-auto border-t border-neutral-200 pt-2 dark:border-neutral-800">
+        <div className="mt-auto space-y-0.5 border-t border-neutral-200 pt-2 dark:border-neutral-800">
+          <SidebarButton
+            icon="◔"
+            label="Analytics"
+            active={current === "analytics"}
+            onClick={() => setCurrent("analytics")}
+          />
           <SidebarButton icon="⚙" label="Settings" onClick={() => setDialog("settings")}>
             <Kbd>⌘,</Kbd>
           </SidebarButton>
         </div>
       </nav>
 
-      <main className="flex-1 overflow-y-auto">
+      <main ref={pane} className="flex-1 overflow-y-auto">
         {error && (
           <div className="border-b border-red-300 bg-red-50 px-6 py-3 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-950/30 dark:text-red-300">
             {error}. Is <span className="font-mono">npm run dev</span> running?
@@ -185,6 +214,8 @@ function Shelf() {
         )}
         {loading ? (
           <p className="p-6 text-sm text-neutral-500">Loading…</p>
+        ) : current === "analytics" ? (
+          <AnalyticsPage entries={entries} onChanged={refresh} />
         ) : (
           renderPage(current, {
             entries,
@@ -217,7 +248,6 @@ function Shelf() {
 
       {dialog === "settings" && (
         <SettingsDialog
-          entries={entries}
           config={config}
           onClose={() => setDialog(null)}
           onChanged={refresh}
