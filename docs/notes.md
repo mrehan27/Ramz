@@ -12,9 +12,10 @@ live only in conversation.
   renderer and quoting, the search filters and per-kind validation, including a real bash and
   zsh load. Anything in the UI still has to be run: the selftest and the headless harnesses in
   [development.md](development.md) are how.
-- **No release has been cut.** `main` is current and the README shows a recorded demo, but
-  `npm run release` and `install.sh` have never run end to end, so the curl one-liner in the
-  README is untested and there is no artifact to download.
+- **v0.1.0 is out**, cut from `main` with `npm run release`. The artifact was verified by
+  downloading it from the release, extracting it and booting it with `RAMZ_SELFTEST=1`. The
+  curl one-liner itself only works once the repo is public: while it was private, both
+  `raw.githubusercontent.com` and the releases API returned 404.
 - **Nothing is signed.** Releases are ad-hoc signed, and `install.sh` clears the quarantine
   flag on the user's own machine.
 
@@ -138,6 +139,16 @@ live only in conversation.
   renderer process and watching it come back. The tray menu reports panel and renderer state,
   because a packaged app has no console to read.
 
+- **Scrubbing a string from history takes more than rewriting the branches.** A tag keeps its
+  old commit, and everything it reaches, alive: after both branches were rewritten, 11 files
+  still matched through `refs/tags/v0.1.0`, and the release zip carried the string inside the
+  bundled example store. Deleting the release with `--cleanup-tag` and cutting a fresh one was
+  the fix. Also, `filter-branch -- --all` rewrites the `origin/*` tracking refs too, which
+  makes the follow-up `--force-with-lease` fail as stale; `-- --branches --tags` does not.
+- **`npm run release` leaves the tree dirty.** It runs `npm run icon`, and the encoder is not
+  byte-deterministic, so `build/icon.icns` always comes back modified. Discard it rather than
+  committing the churn; the tracked icns is fine.
+
 - `ELECTRON_RUN_AS_NODE=1` is set in the VS Code terminal; inherited, the electron binary
   runs as plain node and `require("electron")` returns a path. The npm scripts clear it,
   and so does `install:app` before calling `open`, because `open` forwards the caller's
@@ -172,8 +183,9 @@ offered per conflict (skip, overwrite, keep both) plus an apply-to-all, and a dr
 0. File-based import and export, per the decision above. Copying the store file is the current
    answer and is all-or-nothing.
 
-1. Cut the first release: `npm run release`, then install from the curl line on a clean path.
-   Worth doing as a test of that path as much as a release.
+1. Install from the curl line on a clean path, now that the repo is public. v0.1.0 exists and
+   the artifact boots, but the one-liner in the README has still never been run against the
+   real URLs.
 2. Run with output: `node-pty` plus `xterm.js`. **Low priority, kept rather than dropped.** The
    owner asked what it was worth and the honest answer was: little, since he runs commands in
    his own terminal where the context lives. Note that this was once called the reason Electron

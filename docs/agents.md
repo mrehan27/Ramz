@@ -90,7 +90,11 @@ State plainly what you verified and what you did not. "Typechecks" is not the sa
 and the suite is deliberately narrow: anything in the UI still has to be run.
 
 Before pushing, also grep the staged diff for anything personal (paths, names, tokens, the
-owner's own entries). The project has to stay empty and pluggable.
+owner's own entries). The project has to stay empty and pluggable. **The repo is public**, so
+that includes anything that hints at a workplace: a real ticket prefix, an internal service
+name, a host. Examples in `data/commands.example.json`, the placeholders in `shared/kinds.ts`
+and the recorded demo are all shipped content, and the demo is a picture of the app, so it is
+worth watching rather than assuming.
 
 ## Keeping these documents current
 
