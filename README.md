@@ -12,6 +12,10 @@
   <img alt="Built with Claude" src="https://img.shields.io/badge/built%20with-Claude-c8f43c">
 </p>
 
+<p align="center">
+  <img src="assets/demo.gif" width="820" alt="Finding a command with the palette, filling in a prompt variant, and the usage that follows">
+</p>
+
 Every developer accumulates commands worth keeping: the rebuild incantation with four flags,
 the log query with the right filters, the release checklist you half remember. They end up
 scattered across a `.zshrc`, a scratch file, and browser history. Ramz keeps them in one

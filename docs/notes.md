@@ -116,6 +116,11 @@ live only in conversation.
 
 ## Traps already hit (do not rediscover)
 
+- **The UI trusts entries that came through the schema.** Every field is filled by then, and
+  the renderer reads `entry.variants.length` without guarding. Feeding it the raw example JSON
+  (written before variants existed) killed the renderer with `undefined.length` and left a
+  blank window. Any stub or fixture has to fill the defaults; `complete()` in
+  `scripts/demo-gif.cjs` is the one place that does.
 - **A test fixture that renders shell output will run it.** The bash and zsh test sources the
   generated file and calls the definitions, so a fixture with `git checkout -b {{a}}/{{b}}`
   created a branch in this repo. Fixtures use `echo` commands only, and the test runs with its

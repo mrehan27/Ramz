@@ -19,6 +19,7 @@
     "agent:reload": "npm run build && npm run agent:restart",
     "build:electron": "npm run icon:tray && esbuild --bundle --platform=node --target=node22 --external:electron --format=cjs --outfile=dist-electron/main.cjs electron/main.ts && esbuild --bundle --platform=node --target=node22 --external:electron --format=cjs --outfile=dist-electron/preload.cjs electron/preload.ts",
     "icon": "env -u ELECTRON_RUN_AS_NODE electron scripts/app-icon.cjs",
+    "demo:gif": "env -u ELECTRON_RUN_AS_NODE electron scripts/demo-gif.cjs",
     "icon:tray": "env -u ELECTRON_RUN_AS_NODE electron scripts/app-icon.cjs --tray",
     "install:app": "node scripts/install-app.mjs",
     "build:app": "npm run build && npm run build:electron",

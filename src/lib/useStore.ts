@@ -50,7 +50,8 @@ export function useStore() {
 
   /** Fire-and-forget: a failed count must never get in the way of a copy. */
   const markUsed = useCallback((id: string) => {
-    setEntries((list) => list.map((e) => (e.id === id ? { ...e, useCount: e.useCount + 1 } : e)));
+    const now = new Date().toISOString();
+    setEntries((list) => list.map((e) => (e.id === id ? { ...e, useCount: e.useCount + 1, lastUsedAt: now } : e)));
     void api.markUsed(id).catch(() => {});
   }, []);
 

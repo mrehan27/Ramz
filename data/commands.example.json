@@ -168,7 +168,8 @@
           "values": {
             "platform": "Android",
             "test_cmd": "./gradlew test"
-          }
+          },
+          "isDefault": true
         },
         {
           "name": "iOS",
@@ -176,7 +177,8 @@
           "values": {
             "platform": "iOS",
             "test_cmd": "xcodebuild test"
-          }
+          },
+          "isDefault": false
         }
       ],
       "body": "Port {{feature}} to the {{platform}} SDK.\n\nRead the existing implementation first and match its conventions rather than inventing new ones.\nWrite a failing test for each behaviour before you implement it.\nRun {{test_cmd}} and paste the actual output. Do not call it passing without that.\nKeep the diff scoped to this feature: no CI changes, no dependency bumps, no unrelated refactors.",

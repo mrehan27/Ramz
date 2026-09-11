@@ -71,6 +71,27 @@ Beyond the suite:
   `window.ramz`, drive it, and assert on rendered text. This is how the pages, the palette and
   the panel get checked, since none of it is reachable from a node test.
 
+## The README demo
+
+```sh
+npm run build && npm run demo:gif     # needs gifski: brew install gifski
+```
+
+`scripts/demo-gif.cjs` boots the built UI against **`data/commands.example.json`**, drives a
+scripted sequence, captures frames through a frame subscription and hands them to gifski. It
+records the example entries on purpose: the real store is personal and this output is
+published, so the demo cannot show anything of yours.
+
+Notes if you change it:
+
+- Start the clock only once the first render has settled. The frames before that are the
+  loading state, and the first frame is the poster GitHub shows.
+- `capturePage` is about 7ms, so speed was never the problem there; a frame subscription plus a
+  fixed-rate write is what makes a still moment repeat a frame rather than leave a gap.
+- The pointer is drawn in the page. `capturePage` does not include the real cursor, so without
+  it a click looks like the app moving on its own.
+- `RAMZ_DEMO_KEEP=1` leaves the frames behind, which is the only way to check the middle.
+
 ## Icons
 
 Both icons come from `assets/`, converted by `scripts/app-icon.cjs`:
