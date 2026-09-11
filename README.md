@@ -98,7 +98,7 @@ that directory removes Ramz from your shell completely; nothing else is touched.
 
 ## Licence
 
-MIT, see [LICENSE](LICENSE).
+MIT © 2026 Muhammad Rehan. See [LICENSE](LICENSE).
 
 ---
 
