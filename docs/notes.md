@@ -12,10 +12,12 @@ live only in conversation.
   renderer and quoting, the search filters and per-kind validation, including a real bash and
   zsh load. Anything in the UI still has to be run: the selftest and the headless harnesses in
   [development.md](development.md) are how.
-- **v0.1.0 is out**, cut from `main` with `npm run release`. The artifact was verified by
-  downloading it from the release, extracting it and booting it with `RAMZ_SELFTEST=1`. The
-  curl one-liner itself only works once the repo is public: while it was private, both
-  `raw.githubusercontent.com` and the releases API returned 404.
+- **v0.1.0 is out and the install path is proven.** Cut from `main` with `npm run release`,
+  then installed by running the README's curl line for real: it found the release, downloaded
+  the zip, cleared the quarantine flag and launched. Booting the downloaded copy with
+  `RAMZ_SELFTEST=1` rendered the panel and registered the hotkeys. Note that none of this
+  works while the repo is private, since `raw.githubusercontent.com` and the releases API both
+  404 without auth. Use `RAMZ_DEST` to try the installer without touching `/Applications`.
 - **Nothing is signed.** Releases are ad-hoc signed, and `install.sh` clears the quarantine
   flag on the user's own machine.
 
@@ -183,21 +185,18 @@ offered per conflict (skip, overwrite, keep both) plus an apply-to-all, and a dr
 0. File-based import and export, per the decision above. Copying the store file is the current
    answer and is all-or-nothing.
 
-1. Install from the curl line on a clean path, now that the repo is public. v0.1.0 exists and
-   the artifact boots, but the one-liner in the README has still never been run against the
-   real URLs.
-2. Run with output: `node-pty` plus `xterm.js`. **Low priority, kept rather than dropped.** The
+1. Run with output: `node-pty` plus `xterm.js`. **Low priority, kept rather than dropped.** The
    owner asked what it was worth and the honest answer was: little, since he runs commands in
    his own terminal where the context lives. Note that this was once called the reason Electron
    was chosen, which is wrong. The reasons are the global hotkey, a panel that floats over
    full-screen apps, and a Dock tile.
-3. Launch at login (`app.setLoginItemSettings`).
-4. Notes cannot reach the palette today, because they have no single thing to copy. Worth
+2. Launch at login (`app.setLoginItemSettings`).
+3. Notes cannot reach the palette today, because they have no single thing to copy. Worth
    revisiting: a note is often exactly what you are hunting for. Prompts do reach it, via
    `copyText` on the kind, which is the shape a note would need too.
-5. The menubar diagnostics block (behind the `debug` pref) can come out once the invisible
+4. The menubar diagnostics block (behind the `debug` pref) can come out once the invisible
    panel has stayed away for a while. It exists because a packaged app has no console.
-6. Variants only substitute values. A prompt whose platforms differ by a whole paragraph has
+5. Variants only substitute values. A prompt whose platforms differ by a whole paragraph has
    to keep that paragraph in a placeholder, which works but reads oddly in the editor.
 
 ---
