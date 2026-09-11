@@ -61,6 +61,7 @@ app.post("/api/import", async (c) => run(async () => core.runImport(await c.req.
 app.post("/api/transfer/export", async (c) => run(async () => core.transferExport(await c.req.json().catch(() => ({})))));
 app.get("/api/transfer/preview", (c) => run(() => core.transferPreview(c.req.query("path") ?? "")));
 app.post("/api/transfer/import", async (c) => run(async () => core.runTransferImport(await c.req.json())));
+app.post("/api/entries/reorder", async (c) => run(async () => core.reorderEntries(await c.req.json())));
 
 /**
  * In production one process serves both the API and the built UI, so there is

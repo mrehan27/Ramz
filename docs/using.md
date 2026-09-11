@@ -142,6 +142,34 @@ file in there that does not carry the generated header.
 Adding another generated file later (per-tag files, completions) means adding it to
 `GENERATED` in `server/paths.ts`; `init.sh` picks it up and the rc line never changes.
 
+## Order
+
+Every list has a **Sort** control, because the old order was pinned first then alphabetical
+with nothing on screen saying so, which reads as arbitrary.
+
+| | |
+|---|---|
+| **My order** | whatever you dragged it into |
+| **A to Z** | by title, the default |
+| **Recently used** | last copied first; never copied sorts last, not first |
+| **Most used** | by how often you have copied it |
+| **Newest** | most recently added first |
+
+The choice is remembered per kind, so Prompts can be in your own order while Aliases stay
+alphabetical. **Pinned entries stay on top in every sort, manual included**: pinning is how you
+say "this one first", and a drag moves an entry within its own group.
+
+Under **My order** each row grows a grip (⠿). Drag it to move that entry. Only the grip is
+draggable, so text stays selectable and the inputs keep working. Dragging is off while you are
+searching, because dropping a row into a relevance-ranked list would look like it worked and
+then undo itself on the next keystroke. On the Aliases and Snippets pages, grouping by tag also
+steps aside while you drag, since a row dragged across a tag boundary would jump back into its
+own group and look broken. A newly added entry has no position yet, so it appears at the top
+until you move it.
+
+The **sidebar is draggable too**. Put the kinds in whatever order suits you, and whichever
+you put first is the one that opens when you start Ramz.
+
 ## Export and import a file
 
 Settings > Your data writes everything, or only the kinds you tick, to one JSON file. It is

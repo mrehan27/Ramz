@@ -5,6 +5,7 @@ import { Badge, Button, Input, Tip, cx } from "./ui.tsx";
 import { TagBadge } from "./TagBadge.tsx";
 import { CopyButton } from "./CopyButton.tsx";
 import { CommandText } from "./CommandText.tsx";
+import { Grip, type GripProps } from "./Grip.tsx";
 
 const CLAMP = 3;
 
@@ -13,6 +14,7 @@ const ACTION = "min-w-[5rem] justify-center";
 
 export function EntryCard({
   entry, onEdit, onDelete, onToggleExport, onTogglePin, onToggleArchive, onUsed, tagColors,
+  grip, row, className,
 }: {
   entry: Entry;
   tagColors: Record<string, TagColor>;
@@ -22,6 +24,10 @@ export function EntryCard({
   onTogglePin?: () => void;
   onToggleArchive?: () => void;
   onUsed?: () => void;
+  /** Set only under the manual sort; see useOrdering. */
+  grip?: GripProps;
+  row?: React.HTMLAttributes<HTMLElement>;
+  className?: string;
 }) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [filling, setFilling] = useState(false);
@@ -44,10 +50,17 @@ export function EntryCard({
   const preview = lines.slice(0, CLAMP).join("\n") + (lines.length > CLAMP ? "\n…" : "");
 
   return (
-    <article className="rounded-lg border border-neutral-200 bg-white p-3.5 dark:border-neutral-800 dark:bg-neutral-900">
+    <article
+      {...row}
+      className={cx(
+        "rounded-lg border border-neutral-200 bg-white p-3.5 transition dark:border-neutral-800 dark:bg-neutral-900",
+        className,
+      )}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
+            <Grip props={grip} />
             {onTogglePin && (
               <Tip text={entry.pinned ? "Unpin" : "Pin to the top of the list"}>
                 <button

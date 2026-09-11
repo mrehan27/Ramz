@@ -306,6 +306,7 @@ export async function runImport(payload: unknown) {
       body: "",
       asFunction: item.asFunction,
       pinned: false,
+      order: 0,
       archived: false,
       exported: true,
     };
@@ -412,4 +413,26 @@ export async function runTransferImport(payload: unknown) {
 function sameContent(a: Entry, b: Entry) {
   const bare = ({ id, createdAt, updatedAt, useCount, lastUsedAt, ...rest }: Entry) => rest;
   return JSON.stringify(bare(a)) === JSON.stringify(bare(b));
+}
+
+/**
+ * Manual order for one kind, as the ids in the order they should appear.
+ * `updatedAt` is deliberately untouched: where an entry sits is not a change to
+ * what it says, and bumping it would reshuffle the Newest and Recently used
+ * views every time you dragged something.
+ */
+export async function reorderEntries(payload: unknown) {
+  const body = z.object({ kind: KindSchema, ids: z.array(z.string()).min(1) }).safeParse(payload);
+  if (!body.success) throw new RamzError(body.error.issues[0].message);
+  const store = await readStore();
+  const rank = new Map(body.data.ids.map((id, i) => [id, i + 1]));
+  let touched = 0;
+  store.entries = store.entries.map((e) => {
+    const to = e.kind === body.data.kind ? rank.get(e.id) : undefined;
+    if (to === undefined || to === e.order) return e;
+    touched++;
+    return { ...e, order: to };
+  });
+  if (touched) await writeStore(store);
+  return { ordered: touched };
 }

@@ -2,16 +2,22 @@ import { useState } from "react";
 import { resolveCommand, type Entry, type EntryInput, type TagColor } from "../../shared/schema.ts";
 import { kind } from "../../shared/kinds.ts";
 import { allTags, useSearch } from "../lib/search.ts";
+import { useOrdering } from "../lib/useOrdering.ts";
+import type { SortKey } from "../../shared/sort.ts";
+import type { KindId } from "../../shared/kinds.ts";
+import { SortPicker } from "../components/SortPicker.tsx";
+import { Grip } from "../components/Grip.tsx";
 import { EntryDialog } from "../components/EntryDialog.tsx";
 import { SearchBar } from "../components/SearchBar.tsx";
 import { CommandText } from "../components/CommandText.tsx";
 import { CopyButton } from "../components/CopyButton.tsx";
 import { ArgFields } from "../components/ArgFields.tsx";
 import { TagBadge } from "../components/TagBadge.tsx";
-import { Button } from "../components/ui.tsx";
+import { Button, cx } from "../components/ui.tsx";
 
 export function NotesPage({
   entries, onSave, onDelete, onToggleArchive, onUsed, tagColors, onTagColor,
+  sort, onSort, onReorder,
 }: {
   entries: Entry[];
   onSave: (input: EntryInput, id?: string) => Promise<void>;
@@ -20,6 +26,9 @@ export function NotesPage({
   onUsed?: (id: string) => void;
   tagColors: Record<string, TagColor>;
   onTagColor?: (tag: string, color: TagColor | null) => void;
+  sort: SortKey;
+  onSort: (key: SortKey) => void;
+  onReorder: (kind: KindId, ids: string[]) => void;
 }) {
   const [query, setQuery] = useState("");
   const [tag, setTag] = useState<string | null>(null);
@@ -32,6 +41,9 @@ export function NotesPage({
   const archivedCount = ofKind.filter((e) => e.archived).length;
   const scoped = showArchived ? ofKind : ofKind.filter((e) => !e.archived);
   const results = useSearch(scoped, query, tag);
+  const { sorted, gripProps, rowProps, dragClass } = useOrdering(
+    "note", results, sort, onReorder, query.trim().length > 0,
+  );
 
   return (
     <div className="mx-auto max-w-4xl space-y-5 p-6">
@@ -50,20 +62,33 @@ export function NotesPage({
           count={results.length}
           tagColors={tagColors} onTagColor={onTagColor}
         />
-        {archivedCount > 0 && (
-          <label className="flex cursor-pointer items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-            <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
-            Show archived ({archivedCount})
-          </label>
-        )}
+        <div className="flex items-center gap-3 text-xs text-neutral-500 dark:text-neutral-400">
+          <SortPicker value={sort} onChange={onSort} />
+          {archivedCount > 0 && (
+            <label className="flex cursor-pointer items-center gap-1.5">
+              <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+              Show archived ({archivedCount})
+            </label>
+          )}
+        </div>
       </div>
 
       <div className="space-y-3">
-        {results.map((note) => (
-          <article key={note.id} className="rounded-lg border border-neutral-200 bg-white p-3.5 dark:border-neutral-800 dark:bg-neutral-900">
+        {sorted.map((note) => (
+          <article
+            key={note.id}
+            {...rowProps(note)}
+            className={cx(
+              "rounded-lg border border-neutral-200 bg-white p-3.5 transition dark:border-neutral-800 dark:bg-neutral-900",
+              dragClass(note),
+            )}
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="text-sm font-medium">{note.title}</h3>
+                <h3 className="flex items-center gap-1.5 text-sm font-medium">
+                  <Grip props={gripProps(note)} />
+                  {note.title}
+                </h3>
                 {note.description && (
                   <p className="mt-0.5 text-xs text-neutral-400 dark:text-neutral-500">{note.description}</p>
                 )}

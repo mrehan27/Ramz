@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { kind, type KindId } from "../../shared/kinds.ts";
 import type { Entry, EntryInput } from "../../shared/schema.ts";
-import { allTags, byPin, useSearch } from "../lib/search.ts";
+import { allTags, useSearch } from "../lib/search.ts";
+import { useOrdering } from "../lib/useOrdering.ts";
+import type { SortKey } from "../../shared/sort.ts";
+import { SortPicker } from "../components/SortPicker.tsx";
 import { EntryCard } from "../components/EntryCard.tsx";
 import { EntryDialog } from "../components/EntryDialog.tsx";
 import { SearchBar } from "../components/SearchBar.tsx";
@@ -12,7 +15,7 @@ const UNTAGGED = "untagged";
 
 export function ListPage({
   kind: id, entries, onSave, onDelete, onToggleExport, onTogglePin, onToggleArchive, onUsed, actions,
-  tagColors, onTagColor,
+  tagColors, onTagColor, sort, onSort, onReorder,
 }: {
   kind: KindId;
   entries: Entry[];
@@ -25,6 +28,9 @@ export function ListPage({
   actions?: React.ReactNode;
   tagColors: Record<string, TagColor>;
   onTagColor?: (tag: string, color: TagColor | null) => void;
+  sort: SortKey;
+  onSort: (key: SortKey) => void;
+  onReorder: (kind: KindId, ids: string[]) => void;
 }) {
   const [query, setQuery] = useState("");
   const [tag, setTag] = useState<string | null>(null);
@@ -41,6 +47,7 @@ export function ListPage({
   const scoped = showArchived ? ofKind : ofKind.filter((e) => !e.archived);
   const results = useSearch(scoped, query, tag);
   const searching = query.trim().length > 0;
+  const { sorted, canDrag, gripProps, rowProps, dragClass } = useOrdering(id, results, sort, onReorder, searching);
 
   const toggleCollapse = (name: string) =>
     setCollapsed((s) => {
@@ -54,6 +61,9 @@ export function ListPage({
     <EntryCard
       key={e.id}
       entry={e}
+      grip={gripProps(e)}
+      row={rowProps(e)}
+      className={dragClass(e)}
       tagColors={tagColors}
       onEdit={() => setEditing(e)}
       onDelete={() => confirm(`Delete "${e.title}"?`) && onDelete(e.id)}
@@ -64,17 +74,19 @@ export function ListPage({
     />
   );
 
-  // Grouping is off while searching: relevance order is more useful than tidiness.
+  // Grouping is off while searching, because relevance order is more useful than
+  // tidiness, and off under the manual sort, because a row dragged across a tag
+  // boundary would jump back into its own group and look broken.
   const groups: [string, Entry[]][] = [];
-  if (grouped && !searching) {
-    const pinned = results.filter((e) => e.pinned).sort(byPin);
+  if (grouped && !searching && !canDrag) {
+    const pinned = sorted.filter((e) => e.pinned);
     if (pinned.length) groups.push(["pinned", pinned]);
-    const rest = results.filter((e) => !e.pinned);
+    const rest = sorted.filter((e) => !e.pinned);
     const names = [...new Set(rest.map((e) => e.tags[0] ?? UNTAGGED))].sort((a, b) =>
       a === UNTAGGED ? 1 : b === UNTAGGED ? -1 : a.localeCompare(b),
     );
     for (const name of names) {
-      groups.push([name, rest.filter((e) => (e.tags[0] ?? UNTAGGED) === name).sort(byPin)]);
+      groups.push([name, rest.filter((e) => (e.tags[0] ?? UNTAGGED) === name)]);
     }
   }
 
@@ -120,7 +132,9 @@ export function ListPage({
               </label>
             </Tip>
           )}
+          <SortPicker value={sort} onChange={onSort} />
           {searching && grouped && <span className="text-neutral-400">grouping paused while searching</span>}
+          {canDrag && grouped && <span className="text-neutral-400">grouping paused while you drag</span>}
           {grouped && !searching && groups.length > 1 && (
             <button
               onClick={() => {
@@ -161,7 +175,7 @@ export function ListPage({
         </div>
       ) : (
         <div className="space-y-2.5">
-          {(searching ? results : [...results].sort(byPin)).map(card)}
+          {sorted.map(card)}
           {results.length === 0 && (
             <p className="rounded-lg border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500 dark:border-neutral-700">
               {scoped.length === 0 ? "Nothing here yet." : "No matches."}

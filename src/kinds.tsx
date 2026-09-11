@@ -7,6 +7,7 @@
 import type { ReactNode } from "react";
 import { KINDS, type KindId } from "../shared/kinds.ts";
 import type { Entry, EntryInput, TagColor } from "../shared/schema.ts";
+import type { SortKey } from "../shared/sort.ts";
 import { ListPage } from "./pages/ListPage.tsx";
 import { NotesPage } from "./pages/NotesPage.tsx";
 import { PromptsPage } from "./pages/PromptsPage.tsx";
@@ -25,6 +26,10 @@ export type PageProps = {
   onTagColor: (tag: string, color: TagColor | null) => void;
   /** Kind-specific buttons in the page header, e.g. Import and Sync to shell. */
   actions?: ReactNode;
+  /** The order this kind is listed in, and how to change it. */
+  sort: SortKey;
+  onSort: (key: SortKey) => void;
+  onReorder: (kind: KindId, ids: string[]) => void;
 };
 
 const PAGES: Record<KindId, (props: PageProps) => ReactNode> = {

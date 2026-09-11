@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useStore } from "./lib/useStore.ts";
 import { KINDS, page as renderPage, type KindId } from "./kinds.tsx";
 import { kind } from "../shared/kinds.ts";
+import { orderedKinds, sortKey, moved, type SortKey } from "../shared/sort.ts";
+import { api } from "./lib/api.ts";
 import { ExportDialog } from "./components/ExportDialog.tsx";
 import { ImportDialog } from "./components/ImportDialog.tsx";
 import { TransferDialog } from "./components/TransferDialog.tsx";
@@ -121,12 +123,24 @@ function SidebarButton({
 function Shelf() {
   const {
     entries, config, tagColors, error, loading, refresh,
-    save, remove, toggleExport, togglePin, toggleArchive, markUsed, setTagColor, renameTag, deleteTag,
+    save, remove, toggleExport, togglePin, toggleArchive, markUsed, reorder, setTagColor, renameTag, deleteTag,
   } = useStore();
   const [current, setCurrent] = useState<View>("alias");
+  /** Cleared once you navigate yourself, so the stored order only picks the first view. */
+  const chosen = useRef(false);
+  /** Which sidebar row is being carried, while it is being carried. */
+  const [heldKind, setHeldKind] = useState<KindId | null>(null);
   const [dialog, setDialog] = useState<"export" | "import" | "tags" | "settings" | null>(null);
   /** The portable file dialogs, opened from Settings and so able to outlive it. */
   const [transfer, setTransfer] = useState<"export" | "import" | null>(null);
+
+  /** The sort map is one pref, so a change has to carry the other kinds with it. */
+  const setSort = (kind: KindId, key: SortKey) =>
+    api.updatePrefs({ sort: { ...(config?.prefs.sort ?? {}), [kind]: key } }).then(refresh);
+
+  /** Sidebar order, repaired on read so a stale pref cannot hide a kind. */
+  const sidebar = orderedKinds(config?.prefs.kindOrder).map((id) => KINDS.find((k) => k.id === id)!);
+  const setKindOrder = (ids: KindId[]) => api.updatePrefs({ kindOrder: ids }).then(refresh);
   const [palette, setPalette] = useState(false);
   const pane = useRef<HTMLElement>(null);
 
@@ -152,6 +166,14 @@ function Shelf() {
 
   useEffect(() => onView((view) => { if (view === "settings") setDialog("settings"); }), []);
 
+  // Whichever kind you put first is the one that opens, which is the point of
+  // being able to reorder them.
+  useEffect(() => {
+    if (!config || chosen.current) return;
+    chosen.current = true;
+    setCurrent(orderedKinds(config.prefs.kindOrder)[0]);
+  }, [config]);
+
   const counts = Object.fromEntries(
     KINDS.map((k) => [k.id, entries.filter((e) => e.kind === k.id).length]),
   ) as Record<KindId, number>;
@@ -171,14 +193,32 @@ function Shelf() {
           </button>
         </div>
 
-        <SectionLabel>Library</SectionLabel>
+        <Tip text="Drag these into the order you want. Whichever is first is what opens.">
+          <SectionLabel>Library</SectionLabel>
+        </Tip>
         <div className="space-y-0.5">
-          {KINDS.map((k) => (
+          {sidebar.map((k) => (
             <button
               key={k.id}
-              onClick={() => setCurrent(k.id)}
+              onClick={() => { chosen.current = true; setCurrent(k.id); }}
+              draggable
+              onDragStart={(e) => {
+                setHeldKind(k.id);
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("text/plain", k.id);
+              }}
+              onDragOver={(e) => heldKind && heldKind !== k.id && e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (!heldKind || heldKind === k.id) return;
+                const ids = sidebar.map((s) => s.id);
+                void setKindOrder(moved(ids, ids.indexOf(heldKind), ids.indexOf(k.id)));
+                setHeldKind(null);
+              }}
+              onDragEnd={() => setHeldKind(null)}
               className={cx(
                 "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition",
+                heldKind === k.id && "opacity-40",
                 current === k.id
                   ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
                   : "text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800",
@@ -201,7 +241,7 @@ function Shelf() {
             icon="◔"
             label="Analytics"
             active={current === "analytics"}
-            onClick={() => setCurrent("analytics")}
+            onClick={() => { chosen.current = true; setCurrent("analytics"); }}
           />
           <SidebarButton icon="⚙" label="Settings" onClick={() => setDialog("settings")}>
             <Kbd>⌘,</Kbd>
@@ -230,6 +270,9 @@ function Shelf() {
             onToggleArchive: toggleArchive,
             onUsed: markUsed,
             onTagColor: setTagColor,
+            sort: sortKey(config?.prefs.sort?.[current]),
+            onSort: (key) => void setSort(current, key),
+            onReorder: reorder,
             // Only a kind that reaches the shell has anything to import or export.
             actions: kind(current).exportable ? (
               <>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Entry, EntryInput } from "../../shared/schema.ts";
 import type { TagColor } from "../../shared/schema.ts";
+import type { KindId } from "../../shared/kinds.ts";
 import { api, type Config, type TagColors } from "./api.ts";
 
 export function useStore() {
@@ -55,6 +56,20 @@ export function useStore() {
     void api.markUsed(id).catch(() => {});
   }, []);
 
+  /**
+   * Applied locally first: a drag that waited for a round trip would snap back
+   * under the pointer. The server is told after, and a failure refetches.
+   */
+  const reorder = useCallback(async (kind: KindId, ids: string[]) => {
+    const rank = new Map(ids.map((id, i) => [id, i + 1]));
+    setEntries((list) => list.map((e) => (rank.has(e.id) ? { ...e, order: rank.get(e.id)! } : e)));
+    try {
+      await api.reorderEntries(kind, ids);
+    } catch {
+      await refresh();
+    }
+  }, [refresh]);
+
   const setTagColor = useCallback(async (tag: string, color: TagColor | null) => {
     setTagColors(await api.setTagColor(tag, color));
   }, []);
@@ -71,6 +86,6 @@ export function useStore() {
 
   return {
     entries, config, tagColors, error, loading, refresh,
-    save, remove, toggleExport, togglePin, toggleArchive, markUsed, setTagColor, renameTag, deleteTag,
+    save, remove, toggleExport, togglePin, toggleArchive, markUsed, reorder, setTagColor, renameTag, deleteTag,
   };
 }

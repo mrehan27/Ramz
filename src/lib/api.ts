@@ -129,6 +129,10 @@ export const api = {
     call<{ added: number; rejected: { name: string; reason: string }[] }>("runImport", [{ entries }], {
       url: "/api/import", method: "POST", body: { entries },
     }),
+  reorderEntries: (kind: KindId, ids: string[]) =>
+    call<{ ordered: number }>("reorderEntries", [{ kind, ids }], {
+      url: "/api/entries/reorder", method: "POST", body: { kind, ids },
+    }),
   transferExport: (body: { file?: string; kinds?: KindId[] } = {}) =>
     call<{ file: string; entries: number }>("transferExport", [body], {
       url: "/api/transfer/export", method: "POST", body,

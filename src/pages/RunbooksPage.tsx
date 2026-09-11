@@ -2,14 +2,20 @@ import { useMemo, useState } from "react";
 import { placeholdersIn, resolveCommand, type Entry, type EntryInput, type TagColor } from "../../shared/schema.ts";
 import { kind } from "../../shared/kinds.ts";
 import { allTags, useSearch } from "../lib/search.ts";
+import { useOrdering } from "../lib/useOrdering.ts";
+import type { SortKey } from "../../shared/sort.ts";
+import type { KindId } from "../../shared/kinds.ts";
+import { SortPicker } from "../components/SortPicker.tsx";
+import { Grip } from "../components/Grip.tsx";
 import { EntryDialog } from "../components/EntryDialog.tsx";
 import { SearchBar } from "../components/SearchBar.tsx";
 import { CommandText } from "../components/CommandText.tsx";
 import { CopyButton } from "../components/CopyButton.tsx";
-import { Badge, Button, Input, Tip } from "../components/ui.tsx";
+import { Badge, Button, Input, Tip, cx } from "../components/ui.tsx";
 
 export function RunbooksPage({
   entries, onSave, onDelete, tagColors, onTagColor, onUsed,
+  sort, onSort, onReorder,
 }: {
   entries: Entry[];
   onSave: (input: EntryInput, id?: string) => Promise<void>;
@@ -17,6 +23,9 @@ export function RunbooksPage({
   tagColors: Record<string, TagColor>;
   onTagColor?: (tag: string, color: TagColor | null) => void;
   onUsed?: (id: string) => void;
+  sort: SortKey;
+  onSort: (key: SortKey) => void;
+  onReorder: (kind: KindId, ids: string[]) => void;
 }) {
   const [query, setQuery] = useState("");
   const [tag, setTag] = useState<string | null>(null);
@@ -27,6 +36,9 @@ export function RunbooksPage({
 
   const scoped = entries.filter((e) => e.kind === "runbook");
   const results = useSearch(scoped, query, tag);
+  const { sorted, gripProps, rowProps, dragClass } = useOrdering(
+    "runbook", results, sort, onReorder, query.trim().length > 0,
+  );
 
   return (
     <div className="mx-auto max-w-4xl space-y-5 p-6">
@@ -38,24 +50,35 @@ export function RunbooksPage({
         <Button variant="primary" onClick={() => setCreating(true)}>+ New</Button>
       </header>
 
-      <SearchBar
-        query={query} onQuery={setQuery}
-        tags={allTags(scoped)} tag={tag} onTag={setTag}
-        count={results.length}
-        tagColors={tagColors} onTagColor={onTagColor}
-      />
+      <div className="space-y-2">
+        <SearchBar
+          query={query} onQuery={setQuery}
+          tags={allTags(scoped)} tag={tag} onTag={setTag}
+          count={results.length}
+          tagColors={tagColors} onTagColor={onTagColor}
+        />
+        <SortPicker value={sort} onChange={onSort} />
+      </div>
 
       <div className="space-y-2.5">
-        {results.map((p) => {
+        {sorted.map((p) => {
           const expanded = open === p.id;
           return (
-            <article key={p.id} className="rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+            <article
+              key={p.id}
+              {...rowProps(p)}
+              className={cx(
+                "rounded-lg border border-neutral-200 bg-white transition dark:border-neutral-800 dark:bg-neutral-900",
+                dragClass(p),
+              )}
+            >
               <button
                 className="flex w-full items-center justify-between gap-3 p-3.5 text-left"
                 onClick={() => { setValues({}); setOpen(expanded ? null : p.id); }}
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
+                    <Grip props={gripProps(p)} />
                     <span className="text-neutral-400">{expanded ? "▾" : "▸"}</span>
                     <h3 className="text-sm font-medium">{p.title}</h3>
                     <Badge>{p.steps.length} steps</Badge>

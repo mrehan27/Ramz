@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { kind } from "../../shared/kinds.ts";
 import { defaultVariant, resolveCommand, type Entry, type EntryInput, type TagColor, type Variant } from "../../shared/schema.ts";
-import { allTags, byPin, isTextSearch, useSearch } from "../lib/search.ts";
+import { allTags, isTextSearch, useSearch } from "../lib/search.ts";
+import { useOrdering } from "../lib/useOrdering.ts";
+import type { SortKey } from "../../shared/sort.ts";
+import type { KindId } from "../../shared/kinds.ts";
+import { SortPicker } from "../components/SortPicker.tsx";
+import { Grip, type GripProps } from "../components/Grip.tsx";
 import { EntryDialog } from "../components/EntryDialog.tsx";
 import { SearchBar } from "../components/SearchBar.tsx";
 import { CopyButton } from "../components/CopyButton.tsx";
@@ -17,6 +22,7 @@ const ACTION = "min-w-[5rem] justify-center";
 
 export function PromptsPage({
   entries, onSave, onDelete, onToggleArchive, onUsed, onTogglePin, tagColors, onTagColor,
+  sort, onSort, onReorder,
 }: {
   entries: Entry[];
   onSave: (input: EntryInput, id?: string) => Promise<void>;
@@ -26,6 +32,9 @@ export function PromptsPage({
   onUsed?: (id: string) => void;
   tagColors: Record<string, TagColor>;
   onTagColor?: (tag: string, color: TagColor | null) => void;
+  sort: SortKey;
+  onSort: (key: SortKey) => void;
+  onReorder: (kind: KindId, ids: string[]) => void;
 }) {
   const [query, setQuery] = useState("");
   const [tag, setTag] = useState<string | null>(null);
@@ -39,8 +48,10 @@ export function PromptsPage({
   const archivedCount = ofKind.filter((e) => e.archived).length;
   const scoped = showArchived ? ofKind : ofKind.filter((e) => !e.archived);
   const found = useSearch(scoped, query, tag);
-  // Relevance order while searching, pinned first otherwise.
-  const results = isTextSearch(query) ? found : [...found].sort(byPin);
+  // Relevance order while searching, the chosen sort otherwise.
+  const { sorted: results, gripProps, rowProps, dragClass } = useOrdering(
+    "prompt", found, sort, onReorder, isTextSearch(query),
+  );
 
   return (
     <div className="mx-auto max-w-4xl space-y-5 p-6">
@@ -59,12 +70,15 @@ export function PromptsPage({
           count={results.length}
           tagColors={tagColors} onTagColor={onTagColor}
         />
-        {archivedCount > 0 && (
-          <label className="flex cursor-pointer items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-            <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
-            Show archived ({archivedCount})
-          </label>
-        )}
+        <div className="flex items-center gap-3 text-xs text-neutral-500 dark:text-neutral-400">
+          <SortPicker value={sort} onChange={onSort} />
+          {archivedCount > 0 && (
+            <label className="flex cursor-pointer items-center gap-1.5">
+              <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+              Show archived ({archivedCount})
+            </label>
+          )}
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -74,6 +88,9 @@ export function PromptsPage({
             // here rather than the next time the page is opened.
             key={`${prompt.id}:${prompt.updatedAt}`}
             prompt={prompt}
+            grip={gripProps(prompt)}
+            row={rowProps(prompt)}
+            className={dragClass(prompt)}
             tagColors={tagColors}
             onEdit={() => setEditing(prompt)}
             open={openId === prompt.id}
@@ -114,6 +131,7 @@ export function PromptsPage({
 
 function PromptCard({
   prompt, tagColors, open, onToggle, onEdit, onManageVariants, onDelete, onTogglePin, onToggleArchive, onUsed,
+  grip, row, className,
 }: {
   prompt: Entry;
   tagColors: Record<string, TagColor>;
@@ -126,6 +144,9 @@ function PromptCard({
   onTogglePin?: () => void;
   onToggleArchive?: () => void;
   onUsed?: () => void;
+  grip?: GripProps;
+  row?: React.HTMLAttributes<HTMLElement>;
+  className?: string;
 }) {
   const preset = defaultVariant(prompt.variants);
   const [variant, setVariant] = useState<string | null>(preset?.name ?? null);
@@ -150,8 +171,15 @@ function PromptCard({
   }, [open]);
 
   return (
-    <article className="rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+    <article
+      {...row}
+      className={cx(
+        "rounded-lg border border-neutral-200 bg-white transition dark:border-neutral-800 dark:bg-neutral-900",
+        className,
+      )}
+    >
       <div className="flex items-center gap-2 p-3">
+        <Grip props={grip} />
         {onTogglePin && (
           <Tip text={prompt.pinned ? "Unpin" : "Pin to the top of the list"}>
             <button

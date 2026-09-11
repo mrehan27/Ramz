@@ -18,6 +18,7 @@ const blank = (kind: KindId): EntryInput => ({
   body: "",
   asFunction: false,
   pinned: false,
+  order: 0,
   archived: false,
   exported: kindDef(kind).defaults?.exported ?? false,
 });

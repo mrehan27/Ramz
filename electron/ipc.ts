@@ -27,6 +27,7 @@ export const HANDLERS = {
   transferExport: (payload: unknown) => core.transferExport(payload),
   transferPreview: (target: string) => core.transferPreview(target),
   runTransferImport: (payload: unknown) => core.runTransferImport(payload),
+  reorderEntries: (payload: unknown) => core.reorderEntries(payload),
 } as const;
 
 export type Handlers = typeof HANDLERS;

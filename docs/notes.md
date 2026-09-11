@@ -121,6 +121,16 @@ live only in conversation.
 - **One core, two adapters** (`server/core.ts` + HTTP + IPC) so the Electron app and the web
   app can never drift.
 
+- **Order is a choice, and pinned still wins.** A sort per kind, stored in prefs, with pinned
+  entries on top in every one of them including manual: pinning is how you say "this one
+  first", and a drag moves an entry within its group. Manual order is an `order` field written
+  as the index, and a reorder deliberately does not touch `updatedAt`, because where an entry
+  sits is not a change to what it says and bumping it would reshuffle the Newest and Recently
+  used views on every drag. A new entry keeps `order: 0`, so it lands at the top until moved.
+- **Only the grip is draggable.** A whole-card drag costs text selection inside the card and
+  makes its inputs awkward to focus. Dragging is off while searching and pauses tag grouping,
+  since both would move a row somewhere it visibly would not stay.
+
 - **A portable file is plain JSON, and import is a dry run first.** A full library is around
   100 KB and gzips to 16, so compression buys nothing worth losing a file you can read, diff
   and hand-fix; import accepts gzip anyway because someone will. Collisions match on id, which
@@ -150,6 +160,12 @@ live only in conversation.
   three times, and `showPanel` checks `webContents.isCrashed()` first. Verified by killing the
   renderer process and watching it come back. The tray menu reports panel and renderer state,
   because a packaged app has no console to read.
+
+- **A drag in a headless harness needs time between the events.** Dispatching dragstart,
+  dragover and drop in one tick reads the state from before React re-rendered, so the drop sees
+  no held row and silently does nothing. It looks exactly like a broken feature. About 100ms
+  between the events is enough, and the same applies to reading `select.value` straight after
+  firing change.
 
 - **A literal NUL in a source file makes git call it binary.** A separator written as a raw
   control character instead of `\u0000` compiled fine and passed its tests, but the staged
@@ -196,24 +212,18 @@ Import and export of a portable file is **built**; see the decision above for th
 follows.
 
 
-0. Ordering, asked for on 2026-09-11 and next up: the sidebar order as a pref so Aliases need
-   not be first, a labelled sort per page (the current order is pinned first then A-Z, and
-   nothing on screen says so), and **manual drag ordering of entries**, which the owner
-   confirmed he wants. That last one needs an `order` field on the entry and a rule for what
-   happens to it while a sort is active.
-
-1. Run with output: `node-pty` plus `xterm.js`. **Low priority, kept rather than dropped.** The
+0. Run with output: `node-pty` plus `xterm.js`. **Low priority, kept rather than dropped.** The
    owner asked what it was worth and the honest answer was: little, since he runs commands in
    his own terminal where the context lives. Note that this was once called the reason Electron
    was chosen, which is wrong. The reasons are the global hotkey, a panel that floats over
    full-screen apps, and a Dock tile.
-2. Launch at login (`app.setLoginItemSettings`).
-3. Notes cannot reach the palette today, because they have no single thing to copy. Worth
+1. Launch at login (`app.setLoginItemSettings`).
+2. Notes cannot reach the palette today, because they have no single thing to copy. Worth
    revisiting: a note is often exactly what you are hunting for. Prompts do reach it, via
    `copyText` on the kind, which is the shape a note would need too.
-4. The menubar diagnostics block (behind the `debug` pref) can come out once the invisible
+3. The menubar diagnostics block (behind the `debug` pref) can come out once the invisible
    panel has stayed away for a while. It exists because a packaged app has no console.
-5. Variants only substitute values. A prompt whose platforms differ by a whole paragraph has
+4. Variants only substitute values. A prompt whose platforms differ by a whole paragraph has
    to keep that paragraph in a placeholder, which works but reads oddly in the editor.
 
 ---

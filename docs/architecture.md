@@ -63,6 +63,22 @@ A new page is a new filter over the same store, so add a row to `KINDS` and one 
 Analytics is the exception that proves it: a view rather than a kind, so it sits outside the
 registry and is switched on directly in `src/App.tsx`.
 
+## Order
+
+`shared/sort.ts` holds the sorts, the sidebar order and the one-item move, all pure. Two prefs
+back it (`sort` per kind and `kindOrder`), and one field on the entry (`order`). `orderedKinds`
+repairs a stale stored order rather than obeying it, so a kind that was added or removed can
+never leave a page unreachable.
+
+`reorderEntries` in the core takes the ids in their new order and writes `order` as the index.
+It deliberately leaves `updatedAt` alone: where an entry sits is not a change to what it says,
+and bumping it would reshuffle the Newest and Recently used views on every drag. The client
+applies the move locally first, because a drag that waited for a round trip snaps back under
+the pointer.
+
+`src/lib/useOrdering.ts` is the one place the pages share: it hands back the sorted list, the
+props for the grip, the props for the row it would drop onto, and the classes that show both.
+
 ## Moving a library
 
 `shared/transfer.ts` is the portable file and the merge, and it is pure: no fs, no crypto, no
