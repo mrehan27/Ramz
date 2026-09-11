@@ -30,6 +30,11 @@ live only in conversation.
   added in the main window never appeared in ⌘K until the app restarted.
 - **Views start at the top.** One scroll container holds every page, so a scrolled list handed
   its offset to the next view and it opened halfway down.
+- **Keep-awake is an assertion, not a setting.** `powerSaveBlocker.start("prevent-display-sleep")`
+  holds a `NoDisplaySleep` assertion for the life of the process, which beats the display-sleep
+  timer and needs no permission, so it works on a managed machine where the setting is locked.
+  It is released on quit and by its own timer. What it does not promise is the screen staying
+  lit after a policy-forced lock: that runs on the screen-saver timer, and is untested.
 - **Prompt rows collapse, and copying does not need them open.** A prompt card showed five
   stacked blocks (header, description, dropdown, every field, preview), so a handful of prompts
   filled several screens. The row keeps only identity and the action; one card opens at a time.

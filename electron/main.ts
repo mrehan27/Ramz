@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, nativeImage, powerMonitor, screen, shell } from "electron";
+import { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, nativeImage, powerMonitor, powerSaveBlocker, screen, shell } from "electron";
 import path from "node:path";
 import { RamzError, getPrefs } from "../server/core.ts";
 import { STORE_PATH } from "../server/store.ts";
@@ -20,7 +20,7 @@ const HOTKEY = process.env.RAMZ_HOTKEY ?? "CommandOrControl+Shift+K";
 const HOTKEY_MAIN = process.env.RAMZ_HOTKEY_MAIN ?? "CommandOrControl+Shift+M";
 
 // Mirrors the stored preferences, so window callbacks can read them synchronously.
-let prefs: Prefs = { showInDock: true, hideOnBlur: true };
+let prefs: Prefs = { showInDock: true, hideOnBlur: true, debug: false };
 
 let panel: BrowserWindow | null = null;
 let main: BrowserWindow | null = null;
@@ -181,9 +181,9 @@ function panelState() {
 }
 
 /** From anywhere: the full window, with the panel out of the way. */
-function showMain() {
+function showMain(view?: "settings") {
   app.focus({ steal: true });
-  openMain();
+  openMain(view);
   panel?.hide();
 }
 
@@ -202,12 +202,99 @@ function openMain(view?: "settings") {
  * not reliably drawn either, which leaves an app with no visible affordance.
  * Falls back to a text title if the icon is somehow missing.
  */
+/** Held for as long as the screen should stay lit. `until` null means no limit. */
+let awake: { id: number; minutes: number | null; until: number | null; timer: NodeJS.Timeout | null } | null = null;
+let trayIconMissing = false;
+
+const awakeOn = () => awake !== null && powerSaveBlocker.isStarted(awake.id);
+
+function awakeLeft() {
+  if (!awake) return "";
+  if (awake.until === null) return "no limit";
+  const mins = Math.max(0, Math.round((awake.until - Date.now()) / 60000));
+  return mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m left` : `${mins}m left`;
+}
+
+/**
+ * A NoDisplaySleep assertion, the same one a video call holds: it outranks the
+ * display-sleep timer without changing a setting, so a managed machine has
+ * nothing to object to.
+ */
+function keepAwake(minutes: number | null) {
+  letSleep();
+  const id = powerSaveBlocker.start("prevent-display-sleep");
+  awake = {
+    id,
+    minutes,
+    until: minutes === null ? null : Date.now() + minutes * 60000,
+    timer: minutes === null ? null : setTimeout(() => letSleep(), minutes * 60000),
+  };
+  showAwake();
+}
+
+function letSleep() {
+  if (!awake) return;
+  if (awake.timer) clearTimeout(awake.timer);
+  if (powerSaveBlocker.isStarted(awake.id)) powerSaveBlocker.stop(awake.id);
+  awake = null;
+  showAwake();
+}
+
+/** Visible in the menubar, so an hour of held-awake screen cannot be forgotten. */
+function showAwake() {
+  if (!tray || tray.isDestroyed()) return;
+  tray.setTitle(awakeOn() ? "•" : trayIconMissing ? "Ramz" : "");
+  tray.setToolTip(awakeOn() ? `Ramz · screen awake, ${awakeLeft()}` : "Ramz (⌘⇧K)");
+}
+
+function awakeMenu(): Electron.MenuItemConstructorOptions {
+  const choice = (label: string, minutes: number | null) => ({
+    label,
+    type: "radio" as const,
+    checked: awakeOn() && awake?.minutes === minutes,
+    click: () => keepAwake(minutes),
+  });
+  return {
+    label: awakeOn() ? `Screen awake · ${awakeLeft()}` : "Keep the screen awake",
+    submenu: [
+      { label: "Off", type: "radio", checked: !awakeOn(), click: () => letSleep() },
+      { type: "separator" },
+      choice("15 minutes", 15),
+      choice("30 minutes", 30),
+      choice("1 hour", 60),
+      choice("4 hours", 240),
+      choice("Until I turn it off", null),
+    ],
+  };
+}
+
+/** Only in the menu when Settings asks for it: state you need when the app misbehaves. */
+function diagnostics(): Electron.MenuItemConstructorOptions[] {
+  const renderer = panel && !panel.isDestroyed() && !panel.webContents.isCrashed() ? "alive" : "gone";
+  const registered = [HOTKEY, HOTKEY_MAIN].filter((k) => globalShortcut.isRegistered(k)).length;
+  const pressed = fired[HOTKEY];
+  return [
+    { type: "separator" },
+    { label: `Panel ${panelState()} · last ${lastShow || "not shown yet"}`, enabled: false },
+    {
+      label: `Renderer ${renderer}${panelTrouble ? ` · ${panelTrouble}` : ""}${rebuilds > 0 ? ` · rebuilt ${rebuilds}×` : ""}`,
+      enabled: false,
+    },
+    { label: `Registered: ${registered}/2${hotkeysLost.length > 0 ? ` · failed: ${hotkeysLost.join(", ")}` : ""}`, enabled: false },
+    {
+      label: `Quick search key pressed ${pressed?.count ?? 0}×${pressed ? `, last ${Math.round((Date.now() - pressed.at) / 1000)}s ago` : ""}`,
+      enabled: false,
+    },
+  ];
+}
+
 function makeTray() {
   const icon = nativeImage.createFromPath(TRAY_ICON);
   icon.setTemplateImage(true);
   const t = new Tray(icon.isEmpty() ? nativeImage.createEmpty() : icon);
   if (icon.isEmpty()) {
     console.error(`tray icon missing at ${TRAY_ICON}: falling back to a title`);
+    trayIconMissing = true;
     t.setTitle("Ramz");
   }
   t.setToolTip("Ramz (⌘⇧K)");
@@ -255,17 +342,14 @@ app.whenReady().then(() => {
     { label: "Quick search…", accelerator: HOTKEY, click: togglePanel },
     { label: "Open main window", accelerator: HOTKEY_MAIN, click: openMain },
     { type: "separator" },
+    awakeMenu(),
+    { type: "separator" },
+    { label: "Settings…", accelerator: "Command+,", click: () => showMain("settings") },
     { label: "Open the shell directory", click: () => void shell.openPath(path.join(process.env.HOME ?? "", ".config", "ramz")) },
     { type: "separator" },
     { label: "Quit Ramz", role: "quit" },
     { type: "separator" },
-    { label: `Panel ${panelState()} · last ${lastShow || "not shown yet"}`, enabled: false },
-    {
-      label: `Renderer ${panel && !panel.isDestroyed() && !panel.webContents.isCrashed() ? "alive" : "gone"}${panelTrouble ? ` · ${panelTrouble}` : ""}${rebuilds > 0 ? ` · rebuilt ${rebuilds}×` : ""}`,
-      enabled: false,
-    },
-    { label: `Registered: ${[HOTKEY, HOTKEY_MAIN].filter((k) => globalShortcut.isRegistered(k)).length}/2${hotkeysLost.length > 0 ? ` · failed: ${hotkeysLost.join(", ")}` : ""}`, enabled: false },
-    { label: `Quick search key pressed ${fired[HOTKEY]?.count ?? 0}×${fired[HOTKEY] ? `, last ${Math.round((Date.now() - fired[HOTKEY].at) / 1000)}s ago` : ""}`, enabled: false },
+    ...(prefs.debug ? diagnostics() : []),
   ])); });
 
   armHotkeysSoon();
@@ -320,6 +404,10 @@ async function selfTest(win: BrowserWindow) {
     })()`);
     if (typeof result?.text === "string") result.text = result.text.split("\n").join(" | ");
     result.hotkeys = hotkeysLost.length === 0 ? "registered" : `lost: ${hotkeysLost.join(", ")}`;
+    keepAwake(15);
+    result.awake = `${awakeOn() ? "on" : "off"}, ${awakeLeft()}`;
+    letSleep();
+    result.awakeAfterOff = awakeOn() ? "still on" : "off";
     console.log("SELFTEST " + JSON.stringify(result, null, 2));
   } catch (e) {
     console.error("SELFTEST threw:", (e as Error).message);
@@ -330,4 +418,4 @@ async function selfTest(win: BrowserWindow) {
 }
 
 app.on("window-all-closed", () => { /* stays alive in the menubar */ });
-app.on("will-quit", () => globalShortcut.unregisterAll());
+app.on("will-quit", () => { letSleep(); globalShortcut.unregisterAll(); });

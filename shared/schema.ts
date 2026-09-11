@@ -87,6 +87,8 @@ export const PrefsSchema = z.object({
   showInDock: z.boolean().default(true),
   /** Hide the panel as soon as you click away from it. */
   hideOnBlur: z.boolean().default(true),
+  /** Panel, renderer and shortcut state in the menubar menu. Off unless something is wrong. */
+  debug: z.boolean().default(false),
 });
 
 export const StoreSchema = z.object({

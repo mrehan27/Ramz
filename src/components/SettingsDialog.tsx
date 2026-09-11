@@ -59,6 +59,13 @@ export function SettingsDialog({
               onChange={(showInDock) => savePref({ showInDock })}
             />
             <Pref
+              label="Show diagnostics in the menubar menu"
+              hint="Panel, renderer and shortcut state. Worth turning on if quick search ever stops responding."
+              checked={config?.prefs.debug ?? false}
+              busy={busy}
+              onChange={(debug) => savePref({ debug })}
+            />
+            <Pref
               label="Close the panel when I click away"
               hint="Off keeps it open until you press Esc, click the menubar icon, or press ⌘⇧K again."
               checked={config?.prefs.hideOnBlur ?? true}

@@ -61,6 +61,27 @@
 - Actions that change the shell (export, adding or removing the rc line, uninstall) raise a
   toast with the exact command to reload an already-open shell.
 
+## Keeping the screen awake
+
+The menubar menu has **Keep the screen awake**: off, 15 or 30 minutes, 1 or 4 hours, or until
+you turn it off. A dot appears next to the menubar icon while it is on, and the menu shows the time
+left, so an hour of held-awake screen is hard to forget.
+
+It holds a `NoDisplaySleep` assertion, the same one a video call holds. That outranks the
+display-sleep timer without changing a setting, so a managed machine has nothing to object to.
+Confirm it with:
+
+```sh
+pmset -g assertions | grep -i nodisplay
+```
+
+Settings has one more switch worth knowing about: **Show diagnostics in the menubar menu** adds
+panel, renderer and shortcut state to the bottom of that menu. Leave it off until quick search
+misbehaves.
+
+Whether the display stays lit after the screen locks depends on your machine's screen-saver
+and lock policy, which is a separate timer. Test it before relying on it.
+
 ## Arguments
 
 Write `{{name}}` in a command. Arguments are derived from the template, so the two can't
