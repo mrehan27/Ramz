@@ -30,6 +30,10 @@ live only in conversation.
   added in the main window never appeared in ⌘K until the app restarted.
 - **Views start at the top.** One scroll container holds every page, so a scrolled list handed
   its offset to the next view and it opened halfway down.
+- **The test suite is deliberately small.** 19 cases over what has actually broken: the shell
+  renderer and quoting, the search filters, per-kind validation and variant behaviour. The rule
+  is one case per risk, and a test that cannot name the bug it would have caught is noise. The
+  UI is still verified by running it, because a node test cannot see it.
 - **Keep-awake is an assertion, not a setting.** `powerSaveBlocker.start("prevent-display-sleep")`
   holds a `NoDisplaySleep` assertion for the life of the process, which beats the display-sleep
   timer and needs no permission, so it works on a managed machine where the setting is locked.
@@ -112,6 +116,10 @@ live only in conversation.
 
 ## Traps already hit (do not rediscover)
 
+- **A test fixture that renders shell output will run it.** The bash and zsh test sources the
+  generated file and calls the definitions, so a fixture with `git checkout -b {{a}}/{{b}}`
+  created a branch in this repo. Fixtures use `echo` commands only, and the test runs with its
+  cwd in a temp directory.
 - **A dead panel renderer looks like a broken shortcut.** The panel has `vibrancy` and no
   frame, so if its renderer process goes, the window still reports `isVisible()` true and
   paints nothing: pressing the hotkey called `showPanel`, which did its job and showed an
@@ -142,9 +150,13 @@ live only in conversation.
 
 ## Open threads
 
-0. File-based import and export with merge semantics, so entries can come from another
-   machine without overwriting. The open question is collision behaviour: skip, overwrite, or
-   keep both. Copying the store file is the current answer and is all-or-nothing.
+Import and export is decided: **merge, and skip on a collision by default**, with the choice
+offered per conflict (skip, overwrite, keep both) plus an apply-to-all, and a dry-run summary
+("12 new, 3 conflicts") before anything is written.
+
+
+0. File-based import and export, per the decision above. Copying the store file is the current
+   answer and is all-or-nothing.
 
 1. Run with output: `node-pty` plus `xterm.js`. The reason Electron was chosen over a browser
    tab, and still the largest missing feature.

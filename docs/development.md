@@ -41,16 +41,35 @@ wipes. The path never changes, so a Dock tile pinned once keeps working.
 
 ## Testing
 
-There is no test suite yet. What there is instead:
+```sh
+npm test          # node --test over tests/*.test.ts, no framework, no new dependency
+```
+
+Deliberately small: 19 cases over the logic that has actually broken, not coverage for its own
+sake. What they pin down:
+
+| file | what it guards |
+|---|---|
+| `tests/shell.test.ts` | the renderer and quoting rules, and that the generated file really loads and runs in both bash and zsh |
+| `tests/query.test.ts` | search filters, and that long bodies stay out of the fuzzy index |
+| `tests/entries.test.ts` | per-kind validation, the one-default-variant rule, variant switching, and that older stored entries still load |
+
+Two rules for anything added here:
+
+- **Fixtures run.** The shell test sources its output and calls the definitions, so a fixture
+  containing `git checkout -b {{a}}/{{b}}` will check out a branch in this repo. Write `echo`
+  commands only, and the test also runs with its cwd in a temp directory.
+- **One case per risk.** If a test cannot name the bug it would have caught, it is noise.
+
+Beyond the suite:
 
 - **`RAMZ_SELFTEST=1`** boots the packaged or unpackaged app, waits for React, and reports
   the bridge size, entry count, store path and rendered row count. It catches a broken
   preload, a broken IPC channel and a blank render, which are the failures that actually
   happen.
-- **Isolated export runs.** Point `RAMZ_DIR` and `RAMZ_STORE` at a scratch directory, export,
-  then source the generated files in real `sh`, `bash` and `zsh` with stubbed binaries. Three
-  real bugs have shipped through the render and quoting path, so shell output is worth
-  executing rather than eyeballing.
+- **A headless UI harness.** Load `dist/index.html` in an Electron window with a stubbed
+  `window.ramz`, drive it, and assert on rendered text. This is how the pages, the palette and
+  the panel get checked, since none of it is reachable from a node test.
 
 ## Icons
 

@@ -81,12 +81,28 @@ because it quits their running copy.
 
 ```sh
 npm run typecheck
+npm test
 npm run build
 RAMZ_SELFTEST=1 electron .     # or the packaged binary
 ```
 
-State plainly what you verified and what you did not. There is no test suite yet, so
-"typechecks" is not the same as "works".
+State plainly what you verified and what you did not. "Typechecks" is not the same as "works",
+and the suite is deliberately narrow: anything in the UI still has to be run.
+
+Before pushing, also grep the staged diff for anything personal (paths, names, tokens, the
+owner's own entries). The project has to stay empty and pluggable.
+
+## Keeping these documents current
+
+Decisions and traps go in writing as they happen, not at the end:
+
+- a decision, or the reason something is the way it is, goes in [notes.md](notes.md)
+- a trap that cost time goes in notes.md too, under the traps heading
+- a rule an agent must follow goes here
+- anything a user needs to know goes in [using.md](using.md)
+
+Assume the next session starts with no memory of this conversation. If a change would surprise
+it, write the reason down.
 
 ---
 
