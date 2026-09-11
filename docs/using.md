@@ -142,9 +142,36 @@ file in there that does not carry the generated header.
 Adding another generated file later (per-tag files, completions) means adding it to
 `GENERATED` in `server/paths.ts`; `init.sh` picks it up and the rc line never changes.
 
-## Import
+## Export and import a file
 
-Point Import at a file **or a directory** of shell files (`~/.aliases`, a folder of shell
+Settings > Your data writes everything, or only the kinds you tick, to one JSON file. It is
+plain text on purpose: a full library is around 100 KB and gzips to 16, so compressing it
+would buy nothing worth losing a file you can read, diff, or fix a line of by hand. Import
+accepts a gzipped file anyway.
+
+Import never writes before showing you what it would do:
+
+| | |
+|---|---|
+| **New** | not here yet, so it is simply added |
+| **Already here** | matched by id, which is the same entry from another machine, or by kind and title, which is the same idea written twice |
+| **Identical** | matched and the content agrees, so there is nothing to decide |
+
+Every collision gets a choice, and the default is the safe one:
+
+| | |
+|---|---|
+| **Keep mine** | the default. Changes nothing |
+| **Take theirs** | their content replaces yours, but your id, creation date and usage counts stay. A file from another machine does not know how often you copied it |
+| **Keep both** | adds theirs alongside as "title (imported)" |
+
+Set one answer for everything with the **all** dropdown, or answer a row at a time. A file
+that is not ours, or written by a newer Ramz, is refused whole rather than imported in part:
+a partial import you cannot see is worse than a clear refusal.
+
+## Scan shell files
+
+Point **Scan shell files** at a file **or a directory** of shell files (`~/.aliases`, a folder of shell
 scripts, an rc file). Scanning is read-only: the source is never written to. Per definition it picks
 up:
 

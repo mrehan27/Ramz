@@ -4,6 +4,7 @@ import { KINDS, page as renderPage, type KindId } from "./kinds.tsx";
 import { kind } from "../shared/kinds.ts";
 import { ExportDialog } from "./components/ExportDialog.tsx";
 import { ImportDialog } from "./components/ImportDialog.tsx";
+import { TransferDialog } from "./components/TransferDialog.tsx";
 import { Button, Tip, cx } from "./components/ui.tsx";
 import { ToastHost } from "./components/Toast.tsx";
 import { inPanel, hidePanel, openMainWindow, onView } from "./lib/bridge.ts";
@@ -124,6 +125,8 @@ function Shelf() {
   } = useStore();
   const [current, setCurrent] = useState<View>("alias");
   const [dialog, setDialog] = useState<"export" | "import" | "tags" | "settings" | null>(null);
+  /** The portable file dialogs, opened from Settings and so able to outlive it. */
+  const [transfer, setTransfer] = useState<"export" | "import" | null>(null);
   const [palette, setPalette] = useState(false);
   const pane = useRef<HTMLElement>(null);
 
@@ -231,7 +234,7 @@ function Shelf() {
             actions: kind(current).exportable ? (
               <>
                 <Tip text="Read aliases and functions out of an existing shell file or folder. The source file is never modified.">
-                  <Button onClick={() => setDialog("import")}>Import</Button>
+                  <Button onClick={() => setDialog("import")}>Scan shell files</Button>
                 </Tip>
                 <Tip text="Write the ticked commands into your shell files, and wire your shell to load them. One way: Ramz writes, your shell reads.">
                   <Button onClick={() => setDialog("export")}>Sync to shell</Button>
@@ -251,6 +254,12 @@ function Shelf() {
           config={config}
           onClose={() => setDialog(null)}
           onChanged={refresh}
+          onTransfer={(mode) => {
+            // One dialog at a time: two modals would stack their overlays and
+            // both would answer Escape.
+            setDialog(null);
+            setTransfer(mode);
+          }}
         />
       )}
 
@@ -267,6 +276,9 @@ function Shelf() {
 
       {dialog === "export" && <ExportDialog config={config} onClose={() => setDialog(null)} onChanged={refresh} />}
       {dialog === "import" && <ImportDialog onClose={() => setDialog(null)} onImported={refresh} />}
+      {transfer && (
+        <TransferDialog mode={transfer} onClose={() => setTransfer(null)} onImported={refresh} />
+      )}
     </div>
   );
 }

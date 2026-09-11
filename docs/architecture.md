@@ -63,6 +63,20 @@ A new page is a new filter over the same store, so add a row to `KINDS` and one 
 Analytics is the exception that proves it: a view rather than a kind, so it sits outside the
 registry and is switched on directly in `src/App.tsx`.
 
+## Moving a library
+
+`shared/transfer.ts` is the portable file and the merge, and it is pure: no fs, no crypto, no
+clock. Ids and timestamps arrive as arguments, so the same code runs in the server, in the
+browser and in a test. `server/core.ts` is the only part that touches disk, which is also
+where gzip is unwrapped and where a bad file becomes a `RamzError`.
+
+The merge is three functions, in the order the UI calls them: `planImport` sorts the incoming
+entries into new and colliding, `applyImport` takes a plan plus one `choose` callback per
+conflict, and `buildTransfer` writes. A collision is an id match, meaning the same entry from
+another machine, or a kind and title match, meaning the same idea written twice. Overwrite
+keeps the local id, creation date and usage counts, so what is local about an entry survives
+someone else's copy of it.
+
 ## Search filters
 
 `shared/query.ts` splits what you typed into kind filters, tag filters and the text to match.

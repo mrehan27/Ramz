@@ -36,6 +36,13 @@ export const RC_FILES = [".zshrc", ".bashrc", ".bash_profile", ".profile"].map((
   path.join(os.homedir(), f),
 );
 
+/** Where an exported file lands unless you say otherwise. */
+export const downloadsDir = () => path.join(os.homedir(), "Downloads");
+
+/** Expands a leading ~ so a typed path behaves the way it looks. */
+export const expandHome = (file: string) =>
+  file.startsWith("~") ? path.join(os.homedir(), file.slice(1)) : file;
+
 /**
  * The single line that goes in a shell rc: expands to the loader the same way the
  * server resolves it, does nothing when the directory is gone, and carries TAG.

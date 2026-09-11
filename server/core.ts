@@ -7,16 +7,22 @@
  * dialog without knowing anything about the operation.
  */
 import { readFile, readdir, stat, mkdir, rm, rmdir } from "node:fs/promises";
+import { gunzipSync } from "node:zlib";
+import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 import {
-  EntryInputSchema, EntrySchema, PrefsSchema, TagColorSchema,
+  EntryInputSchema, EntrySchema, KindSchema, PrefsSchema, TagColorSchema,
   type Entry, type EntryInput, type Prefs, type TagColor,
 } from "../shared/schema.ts";
 import { isExportable } from "../shared/kinds.ts";
+import {
+  applyImport, buildTransfer, parseTransfer, planImport,
+  type Conflict, type Resolution,
+} from "../shared/transfer.ts";
 import { readStore, writeStore, writeAtomic, newEntry, mergeEntry, STORE_PATH } from "./store.ts";
-import { RAMZ_DIR, GENERATED, RC_FILES, aliasesPath, loaderPath, sourceLine } from "./paths.ts";
+import { RAMZ_DIR, GENERATED, RC_FILES, aliasesPath, loaderPath, sourceLine, downloadsDir, expandHome } from "./paths.ts";
 import {
   HEADER, renderAliases, renderLoader, validateForExport, shadowCheck, parseShellFile,
   findSourceLines, withSourceLine, withoutSourceLine,
@@ -311,4 +317,99 @@ export async function runImport(payload: unknown) {
   store.entries.push(...added);
   await writeStore(store);
   return { added: added.length, entries: added, rejected };
+}
+
+/**
+ * Moving a library between machines, or handing part of one to someone else.
+ * Separate from the shell import above, which reads rc files rather than ours.
+ */
+
+const TransferImportBody = z.object({
+  file: z.string().min(1),
+  /** Per conflict, keyed by the incoming entry's id. */
+  resolutions: z.record(z.string(), z.enum(["skip", "overwrite", "keepBoth"])).default({}),
+  /** Used for any conflict the caller did not answer individually. */
+  fallback: z.enum(["skip", "overwrite", "keepBoth"]).default("skip"),
+});
+
+/** Reads one file, gzipped or not, and refuses the whole thing if it is not ours. */
+async function readTransfer(target: string) {
+  const file = expandHome(target.trim());
+  if (!existsSync(file)) throw new RamzError(`no file at ${file}`, 404);
+  const raw = await readFile(file);
+  // 1f 8b: someone gzipped it. Ours are plain, but accepting both costs nothing.
+  const text = raw[0] === 0x1f && raw[1] === 0x8b ? gunzipSync(raw).toString("utf8") : raw.toString("utf8");
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throw new RamzError(`${path.basename(file)} is not JSON`);
+  }
+  try {
+    return { file, ...parseTransfer(json, new Date().toISOString(), randomUUID) };
+  } catch (e) {
+    throw new RamzError((e as Error).message);
+  }
+}
+
+/** Everything, or the kinds asked for, written where the caller asked. */
+export async function transferExport(payload: unknown) {
+  const body = z.object({ file: z.string().default(""), kinds: z.array(KindSchema).default([]) }).safeParse(payload ?? {});
+  if (!body.success) throw new RamzError(body.error.issues[0].message);
+  const store = await readStore();
+  const wanted = body.data.kinds;
+  const entries = wanted.length ? store.entries.filter((e) => wanted.includes(e.kind)) : store.entries;
+  if (entries.length === 0) throw new RamzError("nothing to export");
+
+  const stamp = new Date().toISOString().slice(0, 10);
+  const target = expandHome(body.data.file.trim() || path.join(downloadsDir(), `ramz-${stamp}.json`));
+  const file = target.endsWith(".json") ? target : `${target}.json`;
+  await mkdir(path.dirname(file), { recursive: true });
+  await writeAtomic(file, `${JSON.stringify(buildTransfer(entries, store.tagColors, new Date().toISOString()), null, 2)}\n`);
+  return { file, entries: entries.length };
+}
+
+/** The dry run: what importing this file would do, before anything is written. */
+export async function transferPreview(target: unknown) {
+  const asked = z.string().min(1, "which file?").safeParse(target);
+  if (!asked.success) throw new RamzError(asked.error.issues[0].message);
+  const read = await readTransfer(asked.data);
+  const store = await readStore();
+  const plan = planImport(read.entries, store.entries, read.tagColors, store.tagColors);
+  return {
+    file: read.file,
+    exportedAt: read.exportedAt,
+    total: read.entries.length,
+    newTags: plan.newTags,
+    fresh: plan.fresh,
+    conflicts: plan.conflicts.map((c) => ({
+      key: c.key,
+      match: c.match,
+      incoming: c.incoming,
+      existing: c.existing,
+      /** Whether the two differ at all, so identical entries need no decision. */
+      identical: sameContent(c.incoming, c.existing),
+    })),
+  };
+}
+
+export async function runTransferImport(payload: unknown) {
+  const body = TransferImportBody.safeParse(payload);
+  if (!body.success) throw new RamzError(body.error.issues[0].message);
+  const read = await readTransfer(body.data.file);
+  const store = await readStore();
+  // Re-planned against the store as it is now, not as the preview saw it.
+  const plan = planImport(read.entries, store.entries, read.tagColors, store.tagColors);
+  const choose = (c: Conflict): Resolution => body.data.resolutions[c.key] ?? body.data.fallback;
+  const out = applyImport(
+    store.entries, plan, choose, new Date().toISOString(), randomUUID, store.tagColors, read.tagColors,
+  );
+  await writeStore({ ...store, entries: out.entries, tagColors: out.tagColors });
+  return { added: out.added, overwritten: out.overwritten, skipped: out.skipped, copied: out.copied };
+}
+
+/** Content equality, ignoring identity, timestamps and local usage. */
+function sameContent(a: Entry, b: Entry) {
+  const bare = ({ id, createdAt, updatedAt, useCount, lastUsedAt, ...rest }: Entry) => rest;
+  return JSON.stringify(bare(a)) === JSON.stringify(bare(b));
 }

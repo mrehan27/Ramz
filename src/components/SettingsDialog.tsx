@@ -7,11 +7,13 @@ import { CopyButton } from "./CopyButton.tsx";
 import { useToast } from "./Toast.tsx";
 
 export function SettingsDialog({
-  config, onClose, onChanged,
+  config, onClose, onChanged, onTransfer,
 }: {
   config: Config | null;
   onClose: () => void;
   onChanged: () => void;
+  /** Opens the portable-file dialogs, which live above this one. */
+  onTransfer: (mode: "export" | "import") => void;
 }) {
   const [busy, setBusy] = useState(false);
   const toast = useToast();
@@ -42,10 +44,18 @@ export function SettingsDialog({
             Ordinary files on disk: back them up, edit them by hand, or point elsewhere with
             RAMZ_STORE and RAMZ_DIR.
           </p>
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex flex-wrap items-center gap-2 pt-1">
             <CopyButton value={config?.storePath ?? ""} label="Copy path" />
             {inApp && <Button onClick={() => void revealStore()}>Show in Finder</Button>}
           </div>
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <Button onClick={() => onTransfer("export")}>Export to a file…</Button>
+            <Button onClick={() => onTransfer("import")}>Import from a file…</Button>
+          </div>
+          <p className="text-xs leading-relaxed text-neutral-400">
+            One portable JSON file for moving to another machine or handing a few entries to
+            someone. Import shows you what it would change before it changes it.
+          </p>
         </section>
 
         {inApp && (

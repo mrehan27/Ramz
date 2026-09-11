@@ -24,6 +24,9 @@ export const HANDLERS = {
   rc: (file: string, action: "install" | "remove") => core.rcAction(file, action),
   importScan: (target?: string) => core.importScan(target),
   runImport: (payload: unknown) => core.runImport(payload),
+  transferExport: (payload: unknown) => core.transferExport(payload),
+  transferPreview: (target: string) => core.transferPreview(target),
+  runTransferImport: (payload: unknown) => core.runTransferImport(payload),
 } as const;
 
 export type Handlers = typeof HANDLERS;

@@ -121,6 +121,16 @@ live only in conversation.
 - **One core, two adapters** (`server/core.ts` + HTTP + IPC) so the Electron app and the web
   app can never drift.
 
+- **A portable file is plain JSON, and import is a dry run first.** A full library is around
+  100 KB and gzips to 16, so compression buys nothing worth losing a file you can read, diff
+  and hand-fix; import accepts gzip anyway because someone will. Collisions match on id, which
+  is the same entry from another machine, or on kind and title, which is the same idea written
+  twice. Skip is the default, the choice is offered per conflict with an apply-to-all, and
+  overwrite keeps the local id, creation date and usage counts. A bad file is refused whole: a
+  partial import you cannot see is worse than a clear refusal.
+- **The shell scanner is now called Scan shell files.** It reads rc files; the new Import reads
+  ours. Two things called Import would have been the same confusion as the old Copy button.
+
 ## Traps already hit (do not rediscover)
 
 - **The UI trusts entries that came through the schema.** Every field is filled by then, and
@@ -140,6 +150,11 @@ live only in conversation.
   three times, and `showPanel` checks `webContents.isCrashed()` first. Verified by killing the
   renderer process and watching it come back. The tray menu reports panel and renderer state,
   because a packaged app has no console to read.
+
+- **A literal NUL in a source file makes git call it binary.** A separator written as a raw
+  control character instead of `\u0000` compiled fine and passed its tests, but the staged
+  diff showed `Bin 0 -> 7300 bytes`, which would have left that file undiffable forever. Worth
+  a glance at `--stat` before every push: a source file that reports as binary is a typo.
 
 - **Scrubbing a string from history takes more than rewriting the branches.** A tag keeps its
   old commit, and everything it reaches, alive: after both branches were rewritten, 11 files
@@ -177,13 +192,15 @@ files and the rc line do not exist on his machine yet, and the **keep-awake lock
 question** is unverified (the display-sleep assertion holds, but a policy-forced lock runs on
 its own timer).
 
-Import and export is decided: **merge, and skip on a collision by default**, with the choice
-offered per conflict (skip, overwrite, keep both) plus an apply-to-all, and a dry-run summary
-("12 new, 3 conflicts") before anything is written.
+Import and export of a portable file is **built**; see the decision above for the rules it
+follows.
 
 
-0. File-based import and export, per the decision above. Copying the store file is the current
-   answer and is all-or-nothing.
+0. Ordering, asked for on 2026-09-11 and next up: the sidebar order as a pref so Aliases need
+   not be first, a labelled sort per page (the current order is pinned first then A-Z, and
+   nothing on screen says so), and **manual drag ordering of entries**, which the owner
+   confirmed he wants. That last one needs an `order` field on the entry and a rule for what
+   happens to it while a sort is active.
 
 1. Run with output: `node-pty` plus `xterm.js`. **Low priority, kept rather than dropped.** The
    owner asked what it was worth and the honest answer was: little, since he runs commands in

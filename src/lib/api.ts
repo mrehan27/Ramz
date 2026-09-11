@@ -1,4 +1,6 @@
 import type { Entry, EntryInput, Prefs, TagColor } from "../../shared/schema.ts";
+import type { KindId } from "../../shared/kinds.ts";
+import type { Resolution } from "../../shared/transfer.ts";
 import { call } from "./bridge.ts";
 
 export type TagColors = Record<string, TagColor>;
@@ -59,6 +61,24 @@ export type ImportItem = {
   params?: ScannedAlias["params"];
 };
 
+/** One incoming entry that already exists here, and how the two compare. */
+export type TransferConflict = {
+  key: string;
+  match: "id" | "title";
+  incoming: Entry;
+  existing: Entry;
+  identical: boolean;
+};
+
+export type TransferPreview = {
+  file: string;
+  exportedAt: string;
+  total: number;
+  newTags: string[];
+  fresh: Entry[];
+  conflicts: TransferConflict[];
+};
+
 export const api = {
   config: () => call<Config>("config", [], { url: "/api/config" }),
   tags: () => call<TagColors>("tags", [], { url: "/api/tags" }),
@@ -108,5 +128,17 @@ export const api = {
   runImport: (entries: ImportItem[]) =>
     call<{ added: number; rejected: { name: string; reason: string }[] }>("runImport", [{ entries }], {
       url: "/api/import", method: "POST", body: { entries },
+    }),
+  transferExport: (body: { file?: string; kinds?: KindId[] } = {}) =>
+    call<{ file: string; entries: number }>("transferExport", [body], {
+      url: "/api/transfer/export", method: "POST", body,
+    }),
+  transferPreview: (target: string) =>
+    call<TransferPreview>("transferPreview", [target], {
+      url: `/api/transfer/preview?path=${encodeURIComponent(target)}`,
+    }),
+  runTransferImport: (body: { file: string; resolutions: Record<string, Resolution>; fallback: Resolution }) =>
+    call<{ added: number; overwritten: number; skipped: number; copied: number }>("runTransferImport", [body], {
+      url: "/api/transfer/import", method: "POST", body,
     }),
 };
