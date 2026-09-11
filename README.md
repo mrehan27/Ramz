@@ -45,8 +45,9 @@ icon. I directed, reviewed and decided; I did not type the code.
 
 Worth knowing before you rely on it:
 
-- There is no test suite yet. It is verified by running it, by booting the packaged app
-  against the real store, and by executing the generated shell files in bash and zsh.
+- The test suite is small on purpose: it covers the shell generator, the search filters and
+  the store. The UI is verified by running it, by booting the packaged app against the real
+  store, and by executing the generated shell files in bash and zsh.
 - Builds are unsigned, so macOS will warn you. See [docs/install.md](docs/install.md).
 - It writes in exactly two places, `~/.config/ramz` and `~/.local/share/ramz`, plus one
   tagged line in your shell rc that you add yourself. Deleting those removes it completely.
