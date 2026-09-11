@@ -8,9 +8,13 @@ live only in conversation.
 
 - **Written entirely by Claude**, directed and reviewed by the owner. Which is why these
   notes exist: they carry the context a fresh session would otherwise have to rediscover.
-- **No tests.** Everything is verified by running it: the packaged app against a real store,
-  and the generated shell files executed in bash and zsh. Three real bugs have shipped through
-  the render and quoting path, so that is the biggest gap.
+- **`npm test` covers the logic, running it covers the rest.** 19 cases over the shell
+  renderer and quoting, the search filters and per-kind validation, including a real bash and
+  zsh load. Anything in the UI still has to be run: the selftest and the headless harnesses in
+  [development.md](development.md) are how.
+- **No release has been cut.** `main` is current and the README shows a recorded demo, but
+  `npm run release` and `install.sh` have never run end to end, so the curl one-liner in the
+  README is untested and there is no artifact to download.
 - **Nothing is signed.** Releases are ad-hoc signed, and `install.sh` clears the quarantine
   flag on the user's own machine.
 
@@ -155,6 +159,11 @@ live only in conversation.
 
 ## Open threads
 
+Waiting on the owner, not on code: **Sync to shell has still never been run**, so the generated
+files and the rc line do not exist on his machine yet, and the **keep-awake lock-screen
+question** is unverified (the display-sleep assertion holds, but a policy-forced lock runs on
+its own timer).
+
 Import and export is decided: **merge, and skip on a collision by default**, with the choice
 offered per conflict (skip, overwrite, keep both) plus an apply-to-all, and a dry-run summary
 ("12 new, 3 conflicts") before anything is written.
@@ -163,15 +172,20 @@ offered per conflict (skip, overwrite, keep both) plus an apply-to-all, and a dr
 0. File-based import and export, per the decision above. Copying the store file is the current
    answer and is all-or-nothing.
 
-1. Run with output: `node-pty` plus `xterm.js`. The reason Electron was chosen over a browser
-   tab, and still the largest missing feature.
-2. Launch at login (`app.setLoginItemSettings`).
-3. Tests. See the verification methods in [development.md](development.md) for what they
-   should cover first: the shell renderer and the quoting rules.
+1. Cut the first release: `npm run release`, then install from the curl line on a clean path.
+   Worth doing as a test of that path as much as a release.
+2. Run with output: `node-pty` plus `xterm.js`. **Low priority, kept rather than dropped.** The
+   owner asked what it was worth and the honest answer was: little, since he runs commands in
+   his own terminal where the context lives. Note that this was once called the reason Electron
+   was chosen, which is wrong. The reasons are the global hotkey, a panel that floats over
+   full-screen apps, and a Dock tile.
+3. Launch at login (`app.setLoginItemSettings`).
 4. Notes cannot reach the palette today, because they have no single thing to copy. Worth
    revisiting: a note is often exactly what you are hunting for. Prompts do reach it, via
    `copyText` on the kind, which is the shape a note would need too.
-5. Variants only substitute values. A prompt whose platforms differ by a whole paragraph has
+5. The menubar diagnostics block (behind the `debug` pref) can come out once the invisible
+   panel has stayed away for a while. It exists because a packaged app has no console.
+6. Variants only substitute values. A prompt whose platforms differ by a whole paragraph has
    to keep that paragraph in a placeholder, which works but reads oddly in the editor.
 
 ---
