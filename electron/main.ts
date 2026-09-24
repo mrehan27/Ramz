@@ -1,9 +1,10 @@
-import { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, nativeImage, powerMonitor, powerSaveBlocker, screen, shell } from "electron";
+import { app, BrowserWindow, Tray, Menu, clipboard, globalShortcut, ipcMain, nativeImage, powerMonitor, powerSaveBlocker, screen, shell } from "electron";
 import path from "node:path";
 import { RamzError, getPrefs } from "../server/core.ts";
 import { STORE_PATH } from "../server/store.ts";
 import type { Prefs } from "../shared/schema.ts";
 import { HANDLERS, CHANNELS } from "./ipc.ts";
+import { makeLog } from "./log.ts";
 
 // Before ready, so dev and packaged runs share one ~/Library/Application Support/Ramz.
 app.setName("Ramz");
@@ -11,6 +12,8 @@ app.setName("Ramz");
 // Bundled to CommonJS: electron's own module is CJS, so named ESM imports of it fail.
 declare const __dirname: string;
 const HERE = __dirname;
+/** ~/Library/Logs/Ramz: where macOS apps keep logs, and where Console.app looks. */
+const log = makeLog(process.env.RAMZ_LOG_DIR ?? path.join(app.getPath("home"), "Library", "Logs", "Ramz"));
 // Packaged, everything lives inside app.asar; in dev it is the repo.
 const ROOT = app.isPackaged ? app.getAppPath() : path.resolve(HERE, "..");
 const DEV_URL = process.env.RAMZ_DEV_URL;           // set by `npm run dev:app`
@@ -20,7 +23,7 @@ const HOTKEY = process.env.RAMZ_HOTKEY ?? "CommandOrControl+Shift+K";
 const HOTKEY_MAIN = process.env.RAMZ_HOTKEY_MAIN ?? "CommandOrControl+Shift+M";
 
 // Mirrors the stored preferences, so window callbacks can read them synchronously.
-let prefs: Prefs = { showInDock: true, hideOnBlur: true, debug: false };
+let prefs: Prefs = { showInDock: true, hideOnBlur: true, debug: false, kindOrder: [], sort: {} };
 
 let panel: BrowserWindow | null = null;
 let main: BrowserWindow | null = null;
@@ -58,7 +61,11 @@ function createPanel() {
   win.on("show", () => { shownAt = Date.now(); });
   win.on("blur", () => {
     if (!prefs.hideOnBlur) return;
-    if (Date.now() - shownAt < 400 || win.webContents.isDevToolsOpened()) return;
+    if (Date.now() - shownAt < 400 || win.webContents.isDevToolsOpened()) {
+      log.write("blur-ignored", { since: Date.now() - shownAt });
+      return;
+    }
+    log.write("hide", { why: "blur" });
     win.hide();
   });
   watchPanel(win);
@@ -76,12 +83,13 @@ function watchPanel(win: BrowserWindow) {
     if (win.isDestroyed()) return;
     panelTrouble = why;
     console.error(`panel rebuilt: ${why}`);
+    log.write("rebuild", { why, rebuilds, gaveUp: rebuilds >= 3 });
     if (rebuilds >= 3) return;
     rebuilds += 1;
     const wasVisible = win.isVisible();
     win.destroy();
     panel = createPanel();
-    if (wasVisible) panel.once("ready-to-show", showPanel);
+    if (wasVisible) panel.once("ready-to-show", () => showPanel("rebuild"));
   };
   win.webContents.on("render-process-gone", (_e, details) => rebuild(`renderer ${details.reason}`));
   win.webContents.on("did-fail-load", (_e, code, desc) => {
@@ -89,6 +97,7 @@ function watchPanel(win: BrowserWindow) {
     if (code !== -3) rebuild(`load failed ${code} ${desc}`);
   });
   win.on("unresponsive", () => rebuild("unresponsive"));
+  win.on("responsive", () => log.write("responsive"));
 }
 
 /** The full UI, for managing entries rather than reaching for one. */
@@ -105,9 +114,11 @@ function createMain(view?: "settings") {
   return win;
 }
 
-function showPanel() {
+function showPanel(trigger = "unknown") {
+  const before = panelSnapshot();
   if (!panel || panel.isDestroyed() || panel.webContents.isCrashed()) {
     if (panel && !panel.isDestroyed()) { panelTrouble = "renderer was crashed"; panel.destroy(); }
+    log.write("recreate", { trigger, before });
     panel = createPanel();
   }
   const cursor = screen.getCursorScreenPoint();
@@ -125,6 +136,67 @@ function showPanel() {
   panel.webContents.focus();
   const box = panel.getBounds();
   lastShow = `${panel.isVisible() ? "shown" : "did not show"} at ${box.x},${box.y}`;
+  log.write("show", {
+    trigger,
+    display: { id: display.id, work: rect(display.workArea), cursor: `${cursor.x},${cursor.y}` },
+    before,
+    after: panelSnapshot(),
+  });
+  checkShown(trigger, panel);
+}
+
+const rect = (r: Electron.Rectangle) => `${r.x},${r.y} ${r.width}x${r.height}`;
+const overlaps = (a: Electron.Rectangle, b: Electron.Rectangle) =>
+  a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+
+/** Everything about the panel that could explain it not being on screen. */
+function panelSnapshot(): Record<string, unknown> {
+  if (!panel) return { panel: "none" };
+  if (panel.isDestroyed()) return { panel: "destroyed" };
+  const b = panel.getBounds();
+  const wc = panel.webContents;
+  let pid: number | string;
+  try { pid = wc.getOSProcessId(); } catch { pid = "none"; }
+  return {
+    visible: panel.isVisible(),
+    focused: panel.isFocused(),
+    bounds: rect(b),
+    onScreen: screen.getAllDisplays().some((d) => overlaps(b, d.bounds)),
+    opacity: panel.getOpacity(),
+    allSpaces: panel.isVisibleOnAllWorkspaces(),
+    crashed: wc.isCrashed(),
+    loading: wc.isLoading(),
+    pid,
+  };
+}
+
+/**
+ * show() returning is not the same as the panel being on screen, so ask again
+ * a moment later, including the page itself: a renderer that is alive but has
+ * not painted looks exactly like one that is working, from out here.
+ */
+function checkShown(trigger: string, win: BrowserWindow) {
+  if (!log.on) return;
+  setTimeout(async () => {
+    if (win.isDestroyed()) return log.write("show-check", { trigger, panel: "destroyed" });
+    const probe = `({ vis: document.visibilityState, focus: document.hasFocus(),
+      input: Boolean(document.querySelector("input")),
+      nodes: document.body ? document.body.getElementsByTagName("*").length : 0 })`;
+    const page = await Promise.race([
+      win.webContents.executeJavaScript(probe, true),
+      new Promise((r) => setTimeout(() => r("no answer in 1.5s"), 1500)),
+    ]).catch((e: Error) => `probe failed: ${e.message}`);
+    const state = panelSnapshot();
+    const problems = [
+      !state.visible && "not visible",
+      state.onScreen === false && "off every display",
+      state.opacity === 0 && "transparent",
+      typeof page === "string" && page,
+      typeof page === "object" && page && (page as { vis: string }).vis !== "visible" && "page thinks it is hidden",
+      typeof page === "object" && page && !(page as { input: boolean }).input && "page has no search box",
+    ].filter(Boolean);
+    log.write(problems.length ? "show-suspect" : "show-ok", { trigger, problems, state, page });
+  }, 400).unref?.();
 }
 
 /** Which hotkeys the last attempt could not claim. Empty when all is well. */
@@ -147,12 +219,16 @@ function armHotkeys() {
   for (const [key, action] of [[HOTKEY, togglePanel], [HOTKEY_MAIN, showMain]] as const) {
     globalShortcut.unregister(key);
     const count = () => {
+      const last = fired[key]?.at;
       fired[key] = { count: (fired[key]?.count ?? 0) + 1, at: Date.now() };
-      action();
+      log.write("hotkey", { key, sinceLast: last ? Date.now() - last : null });
+      if (key === HOTKEY) togglePanel("hotkey");
+      else action();
     };
     if (!globalShortcut.register(key, count)) hotkeysLost.push(key);
   }
   if (hotkeysLost.length > 0) console.error(`hotkeys not registered: ${hotkeysLost.join(", ")}`);
+  log.write("hotkeys", { lost: hotkeysLost });
   return hotkeysLost;
 }
 
@@ -162,15 +238,17 @@ function armHotkeysSoon(delays: number[] = [500, 1000, 2000, 4000, 8000]) {
   setTimeout(() => armHotkeysSoon(delays.slice(1)), delays[0]).unref?.();
 }
 
-function togglePanel() {
-  if (!panel || panel.isDestroyed() || !panel.isVisible()) return showPanel();
+function togglePanel(trigger = "unknown") {
+  if (!panel || panel.isDestroyed() || !panel.isVisible()) return showPanel(trigger);
+  log.write("hide", { why: `toggle from ${trigger}` });
   panel.hide();
   // A window that reports itself visible but is not on screen would swallow
   // every press from here on, since each one would just hide it again.
   if (panel.isVisible()) {
+    log.write("stuck-visible", { trigger, state: panelSnapshot() });
     panel.destroy();
     panel = createPanel();
-    showPanel();
+    showPanel(`${trigger} after stuck`);
   }
 }
 
@@ -285,6 +363,16 @@ function diagnostics(): Electron.MenuItemConstructorOptions[] {
       label: `Quick search key pressed ${pressed?.count ?? 0}×${pressed ? `, last ${Math.round((Date.now() - pressed.at) / 1000)}s ago` : ""}`,
       enabled: false,
     },
+    { type: "separator" },
+    // When the panel will not come up, this menu still does: the way to hand the log over.
+    {
+      label: "Copy recent log",
+      click: () => {
+        log.write("log-copied", { state: panelSnapshot() });
+        clipboard.writeText(log.tail(300));
+      },
+    },
+    { label: "Show log in Finder", click: () => shell.showItemInFolder(log.file) },
   ];
 }
 
@@ -303,6 +391,18 @@ function makeTray() {
 
 /** Preferences take effect immediately, without a restart. */
 function applyPrefs(next: Prefs) {
+  const turnedOn = next.debug && !log.on;
+  log.on = next.debug;
+  if (turnedOn) {
+    log.write("logging-on", {
+      version: app.getVersion(),
+      electron: process.versions.electron,
+      macos: process.getSystemVersion(),
+      displays: screen.getAllDisplays().length,
+      hotkeys: [HOTKEY, HOTKEY_MAIN].filter((k) => globalShortcut.isRegistered(k)),
+      state: panelSnapshot(),
+    });
+  }
   prefs = next;
   if (next.showInDock) void app.dock?.show();
   else app.dock?.hide();
@@ -313,8 +413,8 @@ if (!app.requestSingleInstanceLock()) {
   console.log("another instance holds the lock, handing over to it");
   app.quit();
 } else {
-  app.on("second-instance", () => showPanel());
-  app.on("activate", () => showPanel());
+  app.on("second-instance", () => showPanel("second launch"));
+  app.on("activate", () => showPanel("dock click"));
 }
 
 app.whenReady().then(() => {
@@ -331,16 +431,16 @@ app.whenReady().then(() => {
     });
   }
   ipcMain.handle("openMainWindow", (_e, view?: "settings") => { openMain(view); panel?.hide(); });
-  ipcMain.handle("hidePanel", () => panel?.hide());
+  ipcMain.handle("hidePanel", () => { log.write("hide", { why: "page asked" }); panel?.hide(); });
   ipcMain.handle("revealStore", () => shell.showItemInFolder(STORE_PATH));
 
   tray = makeTray();
   // Any use of the menubar icon is also a chance to get the hotkeys back.
-  tray.on("click", () => { armHotkeys(); togglePanel(); });
+  tray.on("click", () => { armHotkeys(); togglePanel("menubar click"); });
   // No re-arming here: this menu has to report the state as it found it.
   tray.on("right-click", () => { tray?.popUpContextMenu(Menu.buildFromTemplate([
-    { label: "Quick search…", accelerator: HOTKEY, click: togglePanel },
-    { label: "Open main window", accelerator: HOTKEY_MAIN, click: openMain },
+    { label: "Quick search…", accelerator: HOTKEY, click: () => togglePanel("menu") },
+    { label: "Open main window", accelerator: HOTKEY_MAIN, click: () => openMain() },
     { type: "separator" },
     awakeMenu(),
     { type: "separator" },
@@ -354,17 +454,24 @@ app.whenReady().then(() => {
 
   armHotkeysSoon();
   // Both are known moments for macOS to drop a global hotkey.
-  powerMonitor.on("resume", () => armHotkeys());
-  powerMonitor.on("unlock-screen", () => armHotkeys());
+  powerMonitor.on("resume", () => { log.write("power", { what: "resume" }); armHotkeys(); });
+  powerMonitor.on("unlock-screen", () => { log.write("power", { what: "unlock" }); armHotkeys(); });
+  powerMonitor.on("suspend", () => log.write("power", { what: "suspend" }));
+  powerMonitor.on("lock-screen", () => log.write("power", { what: "lock" }));
+  // A panel placed on a display that has since gone away is one way to be invisible.
+  const displays = () => screen.getAllDisplays().map((d) => `${d.id}:${rect(d.bounds)}`);
+  screen.on("display-added", () => log.write("displays", { what: "added", now: displays() }));
+  screen.on("display-removed", () => log.write("displays", { what: "removed", now: displays() }));
+  screen.on("display-metrics-changed", (_e, d, changed) => log.write("displays", { what: "changed", id: d.id, changed }));
 
   // A regular app on purpose: a Dock icon to click, a place in cmd-tab, and a
   // tile the Dock will actually keep. LSUIElement would take all three away, so
   // hiding the icon is done at runtime, only if asked for.
   void getPrefs().then(applyPrefs).catch(() => {});
   panel = createPanel();
-  if (process.env.RAMZ_SELFTEST) { panel.once("ready-to-show", showPanel); void selfTest(panel); }
+  if (process.env.RAMZ_SELFTEST) { panel.once("ready-to-show", () => showPanel("selftest")); void selfTest(panel); }
   // Opened by hand? Show it. Opened at login? Stay out of the way.
-  else if (!app.getLoginItemSettings().wasOpenedAtLogin) panel.once("ready-to-show", showPanel);
+  else if (!app.getLoginItemSettings().wasOpenedAtLogin) panel.once("ready-to-show", () => showPanel("launch"));
 });
 
 /**
@@ -418,4 +525,4 @@ async function selfTest(win: BrowserWindow) {
 }
 
 app.on("window-all-closed", () => { /* stays alive in the menubar */ });
-app.on("will-quit", () => { letSleep(); globalShortcut.unregisterAll(); });
+app.on("will-quit", () => { log.write("quit"); letSleep(); globalShortcut.unregisterAll(); });

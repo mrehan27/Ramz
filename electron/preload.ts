@@ -18,9 +18,9 @@ const bridge = Object.fromEntries(
 contextBridge.exposeInMainWorld("ramz", {
   ...bridge,
   /** Panel-only affordances the web build does not have. */
-  openMainWindow: (view) => ipcRenderer.invoke("openMainWindow", view),
+  openMainWindow: (view?: "settings") => ipcRenderer.invoke("openMainWindow", view),
   /** The main process asking the window to show something, e.g. Settings. */
-  onView: (fn) => ipcRenderer.on("view", (_e, view) => fn(view)),
+  onView: (fn: (view: "settings") => void) => ipcRenderer.on("view", (_e, view) => fn(view)),
   hidePanel: () => ipcRenderer.invoke("hidePanel"),
   revealStore: () => ipcRenderer.invoke("revealStore"),
   isPanel: new URLSearchParams(location.search).get("panel") === "1",

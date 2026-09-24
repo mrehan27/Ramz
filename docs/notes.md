@@ -121,6 +121,24 @@ live only in conversation.
 - **One core, two adapters** (`server/core.ts` + HTTP + IPC) so the Electron app and the web
   app can never drift.
 
+- **The rc gets a fenced block, not a tagged line.** `# BEGIN Ramz SECTION` / `# END Ramz
+  SECTION`, the owner's own format, so the lines can be found, checked and removed exactly,
+  markers and all. The line inside uses `if … fi` rather than `[ ] &&`, because the `&&` form
+  exits 1 once Ramz is gone, and as the last line of an rc that shows as an error on a fresh
+  prompt. The matcher requires `ramz/init.sh` (or the configured `RAMZ_DIR`), since matching
+  `init.sh` alone once claimed an unrelated `source ~/.work/tools/init.sh` and Remove would have
+  deleted it. Older tagged lines and the `&&` block are still recognised.
+- **Sync to shell asks two questions and hides the rest.** Connected or not (with the block and a
+  Copy button until it is), then Sync. The generated files, per-rc buttons and uninstall sit
+  under Details, because you need them once or never. The dialog rechecks on window focus, so
+  pasting the block in a terminal and coming back shows it connected.
+- **The panel log is behind the Diagnostics pref, and holds window state only.** One JSON line
+  per event in `~/Library/Logs/Ramz/panel.log`, 1 MB and one rotation. Every show records its
+  trigger and the state before and after, then a check 400ms later asks the page itself
+  whether it is visible and has its search box, since a live renderer that has not painted
+  looks identical to a working one from the main process. Nothing typed and no entry is ever
+  written to it.
+
 - **Order is a choice, and pinned still wins.** A sort per kind, stored in prefs, with pinned
   entries on top in every one of them including manual: pinning is how you say "this one
   first", and a drag moves an entry within its group. Manual order is an `order` field written
@@ -160,6 +178,17 @@ live only in conversation.
   three times, and `showPanel` checks `webContents.isCrashed()` first. Verified by killing the
   renderer process and watching it come back. The tray menu reports panel and renderer state,
   because a packaged app has no console to read.
+
+- **`npm run typecheck` did not cover `electron/` until 2026-09-24.** esbuild bundles the main
+  process by stripping types without checking them, so four errors had been sitting there,
+  one of them a real bug: `click: openMain` on a menu item makes Electron call
+  `openMain(menuItem, window, event)`, so the MenuItem arrived as `view` and failed to serialize
+  over IPC (logged, not thrown, so it looked fine). Any function handed straight to `click` or
+  to `once("ready-to-show", …)` gets arguments it did not ask for: wrap it.
+- **Chromium only calls a renderer unresponsive when it ignores input.** A frozen panel renderer
+  that nobody types into is never flagged, so `unresponsive`-based recovery does not cover a
+  hidden panel. Found by `SIGSTOP` on the renderer: take its pid from the log's snapshots,
+  because helper processes do not carry `--user-data-dir` and are hard to find otherwise.
 
 - **A drag in a headless harness needs time between the events.** Dispatching dragstart,
   dragover and drop in one tick reads the state from before React re-rendered, so the drop sees
@@ -203,10 +232,19 @@ live only in conversation.
 
 ## Open threads
 
-Waiting on the owner, not on code: **Sync to shell has still never been run**, so the generated
-files and the rc line do not exist on his machine yet, and the **keep-awake lock-screen
-question** is unverified (the display-sleep assertion holds, but a policy-forced lock runs on
-its own timer).
+Waiting on the owner, not on code: the **keep-awake lock-screen question** is unverified (the
+display-sleep assertion holds, but a policy-forced lock runs on its own timer). Sync to shell is
+now in use: he pasted the fenced block into `~/.zshrc` by hand, which is where that format came
+from.
+
+**The panel that sometimes does not appear** (quit and relaunch was the only fix) is being
+logged, not yet diagnosed. Ask him to turn Diagnostics on in Settings and leave it on; after the
+next failure, menubar > Copy recent log. Look for `show-suspect` lines and what came just before
+them. The leading hypothesis, **not verified**: a renderer that is alive but hung. A frozen
+renderer produced exactly that line in testing, and Chromium never called it `unresponsive`
+because a panel you cannot see receives no input to time out on, so the existing auto-rebuild
+never fires. If the log confirms it, the fix is to rebuild the panel when the probe gets no
+answer.
 
 Import and export of a portable file is **built**; see the decision above for the rules it
 follows.

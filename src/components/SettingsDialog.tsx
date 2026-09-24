@@ -69,8 +69,8 @@ export function SettingsDialog({
               onChange={(showInDock) => savePref({ showInDock })}
             />
             <Pref
-              label="Show diagnostics in the menubar menu"
-              hint="Panel, renderer and shortcut state. Worth turning on if quick search ever stops responding."
+              label="Diagnostics"
+              hint="Adds panel state to the menubar menu, and logs every open and close to ~/Library/Logs/Ramz so a quick search that fails to appear can be diagnosed later. Window state only, never what you type."
               checked={config?.prefs.debug ?? false}
               busy={busy}
               onChange={(debug) => savePref({ debug })}

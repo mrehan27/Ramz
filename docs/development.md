@@ -45,12 +45,14 @@ wipes. The path never changes, so a Dock tile pinned once keeps working.
 npm test          # node --test over tests/*.test.ts, no framework, no new dependency
 ```
 
-Deliberately small: 19 cases over the logic that has actually broken, not coverage for its own
+Deliberately small: 34 cases over the logic that has actually broken, not coverage for its own
 sake. What they pin down:
 
 | file | what it guards |
 |---|---|
-| `tests/shell.test.ts` | the renderer and quoting rules, and that the generated file really loads and runs in both bash and zsh |
+| `tests/shell.test.ts` | the renderer and quoting rules, that the generated file really loads and runs in both bash and zsh, and that the rc block is added and removed exactly, never touching someone else's `init.sh` |
+| `tests/transfer.test.ts` | import merge rules: re-importing is a no-op, collisions by id and by title, what overwrite keeps, refusing a bad file whole |
+| `tests/sort.test.ts` | pinned first in every sort, each sort's order and tie-break, repairing a stale sidebar order |
 | `tests/query.test.ts` | search filters, and that long bodies stay out of the fuzzy index |
 | `tests/entries.test.ts` | per-kind validation, the one-default-variant rule, variant switching, and that older stored entries still load |
 
@@ -69,7 +71,28 @@ Beyond the suite:
   happen.
 - **A headless UI harness.** Load `dist/index.html` in an Electron window with a stubbed
   `window.ramz`, drive it, and assert on rendered text. This is how the pages, the palette and
-  the panel get checked, since none of it is reachable from a node test.
+  the panel get checked, since none of it is reachable from a node test. Leave about 100ms
+  between synthetic drag events, or React has not re-rendered and the drop silently does
+  nothing.
+- **`npm run typecheck` covers `electron/` too.** It did not until 2026-09-24, and the main
+  process had four errors nobody could see, because esbuild strips types without checking them.
+
+## The panel log
+
+With Diagnostics on in Settings, the app writes `~/Library/Logs/Ramz/panel.log`: one JSON line
+per event, window state only. Point it elsewhere with `RAMZ_LOG_DIR`, which is how to test it
+without touching a real log. With `RAMZ_STORE` at a temp store whose prefs say `"debug": true`
+and `--user-data-dir` at a temp directory (so it does not collide with an installed copy's
+single-instance lock), a run leaves a log you can read:
+
+```sh
+python3 -c 'import json,sys; [print(json.loads(l)["e"], l[:160]) for l in open(sys.argv[1])]' panel.log
+```
+
+The events that matter are `show` (trigger, state before and after), then `show-ok` or
+`show-suspect` 400ms later with the page's own answer. Everything around them (`power`,
+`displays`, `rebuild`, `hotkey`) is context for why. To simulate a hung panel, `kill -STOP` the
+renderer pid recorded in any snapshot, then ask for the panel.
 
 ## The README demo
 
