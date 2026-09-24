@@ -43,14 +43,23 @@ export const downloadsDir = () => path.join(os.homedir(), "Downloads");
 export const expandHome = (file: string) =>
   file.startsWith("~") ? path.join(os.homedir(), file.slice(1)) : file;
 
+/** Fences our lines in an rc file, so they can be found, checked and removed exactly. */
+export const BLOCK_BEGIN = "# BEGIN Ramz SECTION";
+export const BLOCK_END = "# END Ramz SECTION";
+
 /**
- * The single line that goes in a shell rc: expands to the loader the same way the
- * server resolves it, does nothing when the directory is gone, and carries TAG.
+ * The one line that loads Ramz: expands to the loader the same way the server
+ * resolves it, and does nothing when the directory is gone. `if` rather than
+ * `[ ] &&`, because the && form exits 1 once Ramz is removed, and as the last
+ * line of an rc that shows up as an error on a fresh prompt.
  */
 export function sourceLine(): string {
   const dir = process.env.RAMZ_DIR
     ? RAMZ_DIR
     : `${process.env.XDG_CONFIG_HOME ? "$XDG_CONFIG_HOME" : "${XDG_CONFIG_HOME:-$HOME/.config}"}/ramz`;
   const file = `"${dir}/${LOADER}"`;
-  return `[ -r ${file} ] && . ${file} ${TAG}`;
+  return `if [ -r ${file} ]; then . ${file}; fi`;
 }
+
+/** What goes in the rc: the line, fenced. The owner's own hand-written format. */
+export const sourceBlock = () => [BLOCK_BEGIN, sourceLine(), BLOCK_END].join("\n");

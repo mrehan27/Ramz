@@ -22,10 +22,10 @@ import {
   type Conflict, type Resolution,
 } from "../shared/transfer.ts";
 import { readStore, writeStore, writeAtomic, newEntry, mergeEntry, STORE_PATH } from "./store.ts";
-import { RAMZ_DIR, GENERATED, RC_FILES, aliasesPath, loaderPath, sourceLine, downloadsDir, expandHome } from "./paths.ts";
+import { RAMZ_DIR, GENERATED, RC_FILES, aliasesPath, loaderPath, sourceBlock, downloadsDir, expandHome } from "./paths.ts";
 import {
   HEADER, renderAliases, renderLoader, validateForExport, shadowCheck, parseShellFile,
-  findSourceLines, withSourceLine, withoutSourceLine,
+  loadsRamz, withSourceLine, withoutSourceLine,
 } from "./shell.ts";
 
 export class RamzError extends Error {
@@ -41,7 +41,7 @@ async function rcStatus() {
   return Promise.all(RC_FILES.map(async (file) => {
     const exists = existsSync(file);
     const text = exists ? await readFile(file, "utf8") : "";
-    return { file, name: path.basename(file), exists, hasLine: findSourceLines(text).length > 0 };
+    return { file, name: path.basename(file), exists, hasLine: loadsRamz(text) };
   }));
 }
 
@@ -53,7 +53,7 @@ export async function getConfig() {
     loaderFile: loaderPath(),
     storePath: STORE_PATH,
     installed: existsSync(loaderPath()),
-    sourceLine: sourceLine(),
+    sourceBlock: sourceBlock(),
     rc: await rcStatus(),
     importCandidates: IMPORT_CANDIDATES.filter((f) => existsSync(f)),
   };
@@ -229,7 +229,7 @@ export async function rcAction(file: string, action: "install" | "remove") {
   if (!RC_FILES.includes(file)) throw new RamzError("not a shell rc file");
   const before = existsSync(file) ? await readFile(file, "utf8") : "";
   if (action === "remove" && !existsSync(file)) throw new RamzError("file does not exist", 404);
-  const after = action === "install" ? withSourceLine(before, sourceLine()) : withoutSourceLine(before);
+  const after = action === "install" ? withSourceLine(before, sourceBlock()) : withoutSourceLine(before);
   if (after !== before) await writeAtomic(file, after);
   return { ok: true as const, changed: after !== before, rc: await rcStatus() };
 }

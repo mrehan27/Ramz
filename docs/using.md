@@ -58,7 +58,7 @@
   instead of copying a template full of `{{placeholders}}`. Arguments that have a default
   can be copied straight away, using the defaults. Typed values stick around after a copy,
   which helps when you copy the same command with one argument changed, and ↺ clears them.
-- Actions that change the shell (export, adding or removing the rc line, uninstall) raise a
+- Actions that change the shell (Sync, adding or removing the rc block, uninstall) raise a
   toast with the exact command to reload an already-open shell.
 
 ## Keeping the screen awake
@@ -115,32 +115,44 @@ spaces.
 
 ## Sync to shell
 
-Sync to shell generates two files, both owned entirely by Ramz:
+Two things, in order: connect your shell once, then press **Sync** whenever you change an
+alias.
+
+**Connecting** is three lines at the end of `~/.zshrc`, fenced so they can be found, checked
+and removed exactly:
+
+```sh
+# BEGIN Ramz SECTION
+if [ -r "${XDG_CONFIG_HOME:-$HOME/.config}/ramz/init.sh" ]; then . "${XDG_CONFIG_HOME:-$HOME/.config}/ramz/init.sh"; fi
+# END Ramz SECTION
+```
+
+The dialog shows the block with a Copy button until it finds it, then just says
+**connected**. Paste it yourself, or let Ramz add it from Details. The line only reads a file
+Ramz owns, and does nothing, exit status 0, if that file is gone. Ramz recognises the older
+single line, and the same block with `[ ] &&` in place of the `if`, so an rc you set up
+earlier keeps working.
+
+**Sync** writes two files, both owned entirely by Ramz:
 
 ```
 ~/.config/ramz/
-  init.sh      loader - locates its own directory, sources the files beside it
+  init.sh      loader: finds its own directory, sources the files beside it
   aliases.sh   the generated aliases and functions
 ```
 
-Both are rewritten in full on every export (atomic tmp + rename), so there is no
-managed-block splicing and no way to half-own a file. Before writing, Ramz blocks on
-duplicate names and undefined placeholders, and warns when a name shadows something
-already on `$PATH`.
+Both are rewritten in full every time (atomic tmp + rename), so no file is ever half ours.
+Before writing, Ramz blocks on duplicate names and undefined placeholders, and warns when a
+name shadows something already on `$PATH`. New terminals pick the result up by themselves;
+the dialog gives you the one command to reload the terminal you are in.
 
-Your shell needs exactly one line, which the app can add and remove for you:
-
-```sh
-[ -r "${XDG_CONFIG_HOME:-$HOME/.config}/ramz/init.sh" ] && . "${XDG_CONFIG_HOME:-$HOME/.config}/ramz/init.sh" # Ramz
-```
-
-The `# ramz` tag is how the line is found again for removal. The line is inert when the
-directory is missing, so `rm -rf ~/.config/ramz` is a complete uninstall. Nothing else on
-the system knows Ramz exists. The Uninstall button does the same, and refuses to delete any
-file in there that does not carry the generated header.
+`rm -rf ~/.config/ramz` is a complete uninstall: the rc block goes quiet. Remove files in
+Details does the same, and refuses to delete anything in there that does not carry the
+generated header. Removing the block, from Details or by hand, takes exactly the fenced lines
+and nothing else. An unrelated `source ~/something/init.sh` is never mistaken for ours.
 
 Adding another generated file later (per-tag files, completions) means adding it to
-`GENERATED` in `server/paths.ts`; `init.sh` picks it up and the rc line never changes.
+`GENERATED` in `server/paths.ts`; `init.sh` picks it up and the rc block never changes.
 
 ## Order
 

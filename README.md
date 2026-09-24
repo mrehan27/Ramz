@@ -49,8 +49,9 @@ Worth knowing before you rely on it:
   the store. The UI is verified by running it, by booting the packaged app against the real
   store, and by executing the generated shell files in bash and zsh.
 - Builds are unsigned, so macOS will warn you. See [docs/install.md](docs/install.md).
-- It writes in exactly two places, `~/.config/ramz` and `~/.local/share/ramz`, plus one
-  tagged line in your shell rc that you add yourself. Deleting those removes it completely.
+- It writes in exactly two places, `~/.config/ramz` and `~/.local/share/ramz`, plus a
+  fenced three-line block in your shell rc that you paste yourself. Deleting those removes it
+  completely.
 
 If you are an AI agent picking this up, start with [docs/agents.md](docs/agents.md).
 
@@ -82,8 +83,8 @@ Type a few letters, press Enter, and the command is on your clipboard. Commands 
 `{{arguments}}` ask for values first and remember what you typed.
 
 Aliases are the only kind that touch your machine, and only when you press Sync to shell. That
-writes two files into `~/.config/ramz` and adds one tagged line to your shell rc. Deleting
-that directory removes Ramz from your shell completely; nothing else is touched.
+writes two files into `~/.config/ramz`, which your shell reads through one fenced block in its
+rc. Deleting that directory removes Ramz from your shell completely; nothing else is touched.
 
 ## Docs
 

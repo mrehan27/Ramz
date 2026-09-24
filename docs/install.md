@@ -52,7 +52,8 @@ that does exactly this, or by hand:
 rm -rf ~/.config/ramz                          # the generated shell files
 ```
 
-and delete the line tagged `# ramz` from your `~/.zshrc` or `~/.bashrc`.
+and delete the `# BEGIN Ramz SECTION` block (or, from older versions, the line tagged `# ramz`)
+from your `~/.zshrc` or `~/.bashrc`.
 
 Your entries live in `~/.local/share/ramz/commands.json`. Deleting that is the last step,
 and it is the only one you cannot undo.

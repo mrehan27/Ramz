@@ -48,7 +48,7 @@ const config = ${JSON.stringify({
     loaderFile: "~/.config/ramz/ramz.sh",
     storePath: "~/.local/share/ramz/commands.json",
     installed: true,
-    sourceLine: "source ~/.config/ramz/ramz.sh # ramz",
+    sourceBlock: "# BEGIN Ramz SECTION\n[ -r \"$HOME/.config/ramz/init.sh\" ] && . \"$HOME/.config/ramz/init.sh\"\n# END Ramz SECTION",
     rc: [{ file: "~/.zshrc", name: ".zshrc", exists: true, hasLine: true }],
     importCandidates: [],
   })};

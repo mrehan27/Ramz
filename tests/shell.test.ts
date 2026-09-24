@@ -4,7 +4,10 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { isFunction, renderAliases, renderEntry, validateForExport } from "../server/shell.ts";
+import {
+  isFunction, loadsRamz, renderAliases, renderEntry, validateForExport, withSourceLine, withoutSourceLine,
+} from "../server/shell.ts";
+import { sourceBlock } from "../server/paths.ts";
 import { entry, param } from "./helpers.ts";
 
 test("a plain command becomes an alias, with quotes closed and reopened", () => {
@@ -96,3 +99,34 @@ for (const shell of ["bash", "zsh"]) {
     assert.match(out, /:8080/, "an argument overrides the default");
   });
 }
+
+const RC = 'export PATH="$HOME/bin:$PATH"\nalias ll="ls -la"\n';
+
+test("adding the rc block and removing it again leaves the file exactly as it was", () => {
+  const added = withSourceLine(RC, sourceBlock());
+  assert.equal(loadsRamz(added), true);
+  assert.equal(withSourceLine(added, sourceBlock()), added, "a second add is a no-op");
+  assert.equal(withoutSourceLine(added), RC);
+});
+
+test("a block pasted by hand, or the tagged line older versions wrote, is ours and leaves cleanly", () => {
+  const pasted = `${RC}\n# BEGIN Ramz SECTION\n[ -r "\${XDG_CONFIG_HOME:-$HOME/.config}/ramz/init.sh" ] && . "\${XDG_CONFIG_HOME:-$HOME/.config}/ramz/init.sh"\n# END Ramz SECTION\n`;
+  assert.equal(loadsRamz(pasted), true);
+  assert.equal(withoutSourceLine(pasted), RC, "markers go with the line");
+
+  const legacy = `${RC}\n[ -r "$HOME/.config/ramz/init.sh" ] && . "$HOME/.config/ramz/init.sh" # ramz\n`;
+  assert.equal(withoutSourceLine(legacy), RC);
+  // An empty block mentions us but loads nothing, so adding repairs it rather than stacking a second.
+  const empty = `${RC}\n# BEGIN Ramz SECTION\n# END Ramz SECTION\n`;
+  assert.equal(loadsRamz(empty), false);
+  assert.equal(withSourceLine(empty, sourceBlock()).match(/BEGIN Ramz/g)?.length, 1);
+});
+
+test("someone else's init.sh is never mistaken for ours", () => {
+  const theirs = `${RC}source "$HOME/.work/tools/init.sh"\n. ~/.nvm/init.sh\n`;
+  assert.equal(loadsRamz(theirs), false);
+  assert.equal(withoutSourceLine(theirs), theirs, "Remove must not touch lines it does not own");
+  // A BEGIN with no END claims only its own line, not the rest of the file.
+  const broken = `# BEGIN Ramz SECTION\n${theirs}`;
+  assert.equal(withoutSourceLine(broken), theirs);
+});

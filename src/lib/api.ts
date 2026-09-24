@@ -14,7 +14,8 @@ export type Config = {
   loaderFile: string;
   storePath: string;
   installed: boolean;
-  sourceLine: string;
+  /** The fenced lines that go in a shell rc, exactly as Ramz would write them. */
+  sourceBlock: string;
   rc: RcStatus[];
   importCandidates: string[];
 };

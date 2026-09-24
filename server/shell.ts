@@ -2,7 +2,7 @@ import { isExportable } from "../shared/kinds.ts";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { PLACEHOLDER, POSIX_NAME, placeholdersIn, type Entry, type Param } from "../shared/schema.ts";
-import { GENERATED, LOADER, TAG } from "./paths.ts";
+import { BLOCK_BEGIN, BLOCK_END, GENERATED, LOADER, RAMZ_DIR, TAG } from "./paths.ts";
 
 const exec = promisify(execFile);
 
@@ -191,30 +191,63 @@ export function renderLoader(files: string[] = GENERATED): string {
   ].join("\n");
 }
 
-/** Our line in an rc file: the tagged one we wrote, or any line sourcing the loader. */
+/**
+ * A line that loads our loader, and nobody else's. Matching on `init.sh` alone
+ * once claimed `source ~/.work/tools/init.sh`, and Remove would have deleted it.
+ */
 function isSourceLine(line: string) {
   const t = line.trim();
   if (!t || t.startsWith("#")) return false;
-  return t.includes(LOADER) && (t.endsWith(TAG) || /(^|\s)(\.|source)\s/.test(t));
+  if (t.endsWith(TAG)) return true; // the tagged line older versions wrote
+  const ours = t.includes(`ramz/${LOADER}`) || t.includes(`${RAMZ_DIR}/${LOADER}`);
+  return ours && /(^|\s)(\.|source)\s/.test(t);
 }
 
+/**
+ * Every line in an rc that belongs to Ramz: a fenced block with its markers,
+ * plus any unfenced line that loads us. A BEGIN with no END claims only itself,
+ * never the rest of someone's rc.
+ */
 export function findSourceLines(text: string): number[] {
-  return text.split("\n").flatMap((l, i) => (isSourceLine(l) ? [i] : []));
+  const lines = text.split("\n");
+  const found = new Set<number>();
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim() === BLOCK_BEGIN) {
+      const end = lines.findIndex((l, j) => j > i && l.trim() === BLOCK_END);
+      if (end === -1) {
+        found.add(i);
+        continue;
+      }
+      for (let j = i; j <= end; j++) found.add(j);
+      i = end;
+    } else if (isSourceLine(lines[i])) {
+      found.add(i);
+    }
+  }
+  return [...found].sort((a, b) => a - b);
 }
 
-/** Append the line once; a file that already has it comes back untouched. */
-export function withSourceLine(text: string, line: string): string {
-  if (findSourceLines(text).length > 0) return text;
-  const sep = text.length === 0 || text.endsWith("\n") ? "" : "\n";
-  return `${text}${sep}${text.length ? "\n" : ""}${line}\n`;
+/** Whether the rc actually loads us, not just mentions us: an empty block does not count. */
+export function loadsRamz(text: string) {
+  return findSourceLines(text).some((i) => isSourceLine(text.split("\n")[i]));
 }
 
-/** Drop our line (or lines), plus the blank line we padded it with. */
+/** Append the block once; a file that already loads us comes back untouched. */
+export function withSourceLine(text: string, block: string): string {
+  if (loadsRamz(text)) return text;
+  const cleaned = findSourceLines(text).length ? withoutSourceLine(text) : text;
+  const sep = cleaned.length === 0 || cleaned.endsWith("\n") ? "" : "\n";
+  return `${cleaned}${sep}${cleaned.length ? "\n" : ""}${block}\n`;
+}
+
+/** Drop everything of ours, markers included, plus the blank line we padded it with. */
 export function withoutSourceLine(text: string): string {
   const lines = text.split("\n");
   const drop = new Set(findSourceLines(text));
-  for (const i of [...drop]) {
-    const nextIsGone = i + 1 >= lines.length || lines[i + 1].trim() === "";
+  for (const i of [...drop].filter((i) => !drop.has(i - 1))) {
+    let last = i;
+    while (drop.has(last + 1)) last++;
+    const nextIsGone = last + 1 >= lines.length || lines[last + 1].trim() === "";
     if (i > 0 && lines[i - 1].trim() === "" && nextIsGone) drop.add(i - 1);
   }
   return lines.filter((_, i) => !drop.has(i)).join("\n");
