@@ -29,7 +29,9 @@ const run = (cmd, args) => execFileSync(cmd, args, { cwd: ROOT, stdio: "inherit"
 /** pgrep exits 1 when nothing matches, which is not an error here. */
 function running() {
   try {
-    execFileSync("pgrep", ["-f", "Ramz.app/Contents/MacOS/Ramz"], { stdio: "ignore" });
+    // The process name, exactly. `-f` matched any command line that merely
+    // mentioned the app's path, a shell included, and so never saw it quit.
+    execFileSync("pgrep", ["-x", "Ramz"], { stdio: "ignore" });
     return true;
   } catch {
     return false;

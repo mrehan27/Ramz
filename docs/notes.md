@@ -179,6 +179,11 @@ live only in conversation.
   renderer process and watching it come back. The tray menu reports panel and renderer state,
   because a packaged app has no console to read.
 
+- **`pgrep -f` matches command lines, including your own.** `install:app` checked for a running
+  copy with `pgrep -f "Ramz.app/Contents/MacOS/Ramz"`, so a shell whose command mentioned that
+  path counted as Ramz: the install reported "still running" after Ramz had already quit (the
+  panel log showed the quit), and gave up with the old build installed and nothing running.
+  It now uses `pgrep -x Ramz`, the process name exactly.
 - **"Connected" has to mean the files exist too.** The simplified Sync dialog showed a green
   connected from the rc block alone. The owner had pasted the block but Sync had never run, so
   `~/.config/ramz` did not exist and `clr` was not found. The status is now not synced yet, out
