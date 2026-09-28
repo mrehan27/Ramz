@@ -20,7 +20,9 @@ npm run install:app
 
 The whole update loop in one command: package, quit a running copy, replace
 `~/Applications/Ramz.app`, launch it. `--no-build` installs whatever is already in
-`release/`; `--no-launch` leaves it closed.
+`release/`; `--no-launch` leaves it closed. Only packaging refreshes `release/`:
+`npm run build:app` does not, so `--no-build` after it quietly installs the previous build.
+Check the asar's timestamp if in doubt.
 
 It installs into `~/Applications` rather than running from `release/`, which every rebuild
 wipes. The path never changes, so a Dock tile pinned once keeps working.
