@@ -1,4 +1,5 @@
-import { forwardRef, useEffect, type ReactNode } from "react";
+import { forwardRef, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 export function cx(...parts: (string | false | null | undefined)[]) {
   return parts.filter(Boolean).join(" ");
@@ -127,26 +128,68 @@ export function Modal({
   );
 }
 
-/** Hover/focus explainer. Kept CSS-only so it works inside dialogs and cards alike. */
+/**
+ * Hover/focus explainer. Drawn in a portal at the top of the page and placed
+ * where it fits: above by default, below when there is no room, and kept inside
+ * the window. Drawn inside the layout it was clipped by any scrolling parent,
+ * and ran off the edge for buttons at the top right.
+ */
 export function Tip({ text, children }: { text: string; children: ReactNode }) {
+  const anchor = useRef<HTMLSpanElement>(null);
+  const tip = useRef<HTMLSpanElement>(null);
+  const [open, setOpen] = useState(false);
+
+  useLayoutEffect(() => {
+    const el = tip.current;
+    const a = anchor.current?.getBoundingClientRect();
+    if (!open || !el || !a) return;
+    const GAP = 6;
+    const EDGE = 8;
+    const left = Math.max(EDGE, Math.min(a.left + a.width / 2 - el.offsetWidth / 2, window.innerWidth - el.offsetWidth - EDGE));
+    const above = a.top - el.offsetHeight - GAP;
+    el.style.left = `${left}px`;
+    el.style.top = `${above >= EDGE ? above : a.bottom + GAP}px`;
+    el.style.opacity = "1";
+  }, [open, text]);
+
+  // A fixed tooltip would otherwise hang in the air while the page scrolls under it.
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    window.addEventListener("scroll", close, true);
+    return () => window.removeEventListener("scroll", close, true);
+  }, [open]);
+
   return (
-    <span className="group/tip relative inline-flex">
+    <span
+      ref={anchor}
+      className="inline-flex"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={() => setOpen(false)}
+    >
       {children}
-      <span
-        role="tooltip"
-        className={cx(
-          "pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 w-max max-w-xs -translate-x-1/2",
-          "rounded-md bg-neutral-900 px-2 py-1 text-xs font-normal leading-snug text-white opacity-0 shadow-lg transition",
-          "group-hover/tip:opacity-100 group-focus-within/tip:opacity-100 dark:bg-neutral-700",
-        )}
-      >
-        {text}
-      </span>
+      {open && createPortal(
+        <span
+          ref={tip}
+          role="tooltip"
+          // Placed by the layout effect; hidden until then so it never flashes in the wrong spot.
+          style={{ opacity: 0 }}
+          className={cx(
+            "pointer-events-none fixed z-[100] w-max max-w-xs",
+            "rounded-md bg-neutral-900 px-2 py-1 text-xs font-normal leading-snug text-white shadow-lg transition-opacity",
+            "dark:bg-neutral-700",
+          )}
+        >
+          {text}
+        </span>,
+        document.body,
+      )}
     </span>
   );
 }
 
-/** The small ⓘ that carries a Tip. */
 export function Info({ text }: { text: string }) {
   return (
     <Tip text={text}>
