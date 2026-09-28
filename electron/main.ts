@@ -462,7 +462,11 @@ app.whenReady().then(() => {
   const displays = () => screen.getAllDisplays().map((d) => `${d.id}:${rect(d.bounds)}`);
   screen.on("display-added", () => log.write("displays", { what: "added", now: displays() }));
   screen.on("display-removed", () => log.write("displays", { what: "removed", now: displays() }));
-  screen.on("display-metrics-changed", (_e, d, changed) => log.write("displays", { what: "changed", id: d.id, changed }));
+  // macOS fires this with nothing in `changed` constantly (two in three events in the
+  // first real log), which would crowd the useful history out of the size cap.
+  screen.on("display-metrics-changed", (_e, d, changed) => {
+    if (changed.length) log.write("displays", { what: "changed", id: d.id, changed });
+  });
 
   // A regular app on purpose: a Dock icon to click, a place in cmd-tab, and a
   // tile the Dock will actually keep. LSUIElement would take all three away, so
