@@ -130,7 +130,13 @@ if [ -r "${XDG_CONFIG_HOME:-$HOME/.config}/ramz/init.sh" ]; then . "${XDG_CONFIG
 The dialog shows the block with a Copy button until it finds it. After that the status says
 both halves, because a connected rc with nothing to load looks done and is not: **not synced
 yet** (the rc is set up, no files), **out of date** (the files are older than your aliases,
-with when you last synced), or **up to date**. Paste it yourself, or let Ramz add it from Details. The line only reads a file
+with when you last synced), or **up to date**.
+
+**Keep the shell in sync**, in Settings and on by default, does the pressing for you: whenever
+you save or delete an alias, import some, or start Ramz, it rewrites the file if it differs.
+It only keeps a shell current that you have already synced by hand once, and it skips rather
+than write a file with export errors in it. A skipped sync shows as an amber dot on the Sync to
+shell button, so the shell cannot quietly fall behind. Paste it yourself, or let Ramz add it from Details. The line only reads a file
 Ramz owns, and does nothing, exit status 0, if that file is gone. Ramz recognises the older
 single line, and the same block with `[ ] &&` in place of the `if`, so an rc you set up
 earlier keeps working.

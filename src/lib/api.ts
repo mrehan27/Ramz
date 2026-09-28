@@ -16,6 +16,8 @@ export type Config = {
   installed: boolean;
   /** The fenced lines that go in a shell rc, exactly as Ramz would write them. */
   sourceBlock: string;
+  /** Whether the files the rc loads exist, and match what Sync would write now. */
+  shell: { installed: boolean; upToDate: boolean; syncedAt: string };
   rc: RcStatus[];
   importCandidates: string[];
 };

@@ -53,6 +53,7 @@ export async function getConfig() {
     loaderFile: loaderPath(),
     storePath: STORE_PATH,
     installed: existsSync(loaderPath()),
+    shell: await shellState((await readStore()).entries).then(({ installed, upToDate, syncedAt }) => ({ installed, upToDate, syncedAt })),
     sourceBlock: sourceBlock(),
     rc: await rcStatus(),
     importCandidates: IMPORT_CANDIDATES.filter((f) => existsSync(f)),
@@ -72,6 +73,7 @@ export async function createEntry(input: unknown): Promise<Entry> {
   const store = await readStore();
   store.entries.push(entry);
   await writeStore(store);
+  await afterChange();
   return entry;
 }
 
@@ -86,6 +88,7 @@ export async function updateEntry(id: string, input: unknown): Promise<Entry> {
   if (!check.success) throw new RamzError(check.error.issues[0].message);
   store.entries[idx] = merged;
   await writeStore(store);
+  await afterChange();
   return merged;
 }
 
@@ -94,6 +97,7 @@ export async function deleteEntry(id: string) {
   const next = store.entries.filter((e) => e.id !== id);
   if (next.length === store.entries.length) throw new RamzError("not found", 404);
   await writeStore({ ...store, entries: next });
+  await afterChange();
   return { ok: true as const };
 }
 
@@ -132,6 +136,7 @@ export async function updatePrefs(input: unknown): Promise<Prefs> {
   const store = await readStore();
   store.prefs = { ...store.prefs, ...parsed.data };
   await writeStore(store);
+  if (parsed.data.autoSync) await afterChange();
   return store.prefs;
 }
 
@@ -187,24 +192,57 @@ export async function exportPreview() {
   for (const [name, resolved] of Object.entries(shadows)) {
     problems.push({ name, level: "warn", message: `shadows an existing command (${resolved})` });
   }
-  const aliases = renderAliases(entries);
-  const onDisk = existsSync(aliasesPath()) ? await readFile(aliasesPath(), "utf8") : null;
-  const installed = existsSync(loaderPath()) && onDisk !== null;
+  const state = await shellState(entries);
   return {
-    aliases,
+    aliases: state.aliases,
     loader: renderLoader(),
     count: exportable.length,
     problems,
     configDir: RAMZ_DIR,
     aliasesFile: aliasesPath(),
     loaderFile: loaderPath(),
+    installed: state.installed,
+    upToDate: state.upToDate,
+    syncedAt: state.syncedAt,
+  };
+}
+
+/**
+ * What the shell has versus what Sync would write now. Without this, a
+ * connected rc looked finished even with nothing on disk to load.
+ */
+async function shellState(entries: Entry[]) {
+  const aliases = renderAliases(entries);
+  const onDisk = existsSync(aliasesPath()) ? await readFile(aliasesPath(), "utf8") : null;
+  const installed = existsSync(loaderPath()) && onDisk !== null;
+  return {
+    aliases,
     installed,
-    // What the shell has versus what Sync would write now. Without this, a
-    // connected rc looked finished even with nothing on disk to load.
     upToDate: installed && withoutStamp(onDisk!) === withoutStamp(aliases),
     syncedAt: onDisk?.match(STAMP)?.[1] ?? "",
   };
 }
+
+/**
+ * Keeps the shell current without being asked, so an alias saved here is an
+ * alias your next terminal has. Two limits: only once you have synced by hand,
+ * because Ramz never sets up a shell on its own, and never with export errors,
+ * because a broken file would break every new terminal.
+ */
+export async function autoSync(): Promise<"off" | "not set up" | "current" | "blocked" | "synced"> {
+  const { entries, prefs } = await readStore();
+  if (!prefs.autoSync) return "off";
+  const state = await shellState(entries);
+  if (!state.installed) return "not set up";
+  if (state.upToDate) return "current";
+  if (validateForExport(entries.filter(isExportable)).some((p) => p.level === "error")) return "blocked";
+  await writeAtomic(loaderPath(), renderLoader());
+  await writeAtomic(aliasesPath(), state.aliases);
+  return "synced";
+}
+
+/** A failed auto sync must never fail the save that caused it. */
+const afterChange = () => autoSync().catch(() => "failed" as const);
 
 /** The generated header carries the time it was written, which is not content. */
 const STAMP = /^# (\d{4}-\d{2}-\d{2}T[\d:.]+Z)$/m;
@@ -328,6 +366,7 @@ export async function runImport(payload: unknown) {
   }
   store.entries.push(...added);
   await writeStore(store);
+  await afterChange();
   return { added: added.length, entries: added, rejected };
 }
 
@@ -417,6 +456,7 @@ export async function runTransferImport(payload: unknown) {
     store.entries, plan, choose, new Date().toISOString(), randomUUID, store.tagColors, read.tagColors,
   );
   await writeStore({ ...store, entries: out.entries, tagColors: out.tagColors });
+  await afterChange();
   return { added: out.added, overwritten: out.overwritten, skipped: out.skipped, copied: out.copied };
 }
 

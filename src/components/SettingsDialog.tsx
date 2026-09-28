@@ -58,6 +58,17 @@ export function SettingsDialog({
           </p>
         </section>
 
+        <section className="space-y-2 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+          <h3 className="font-semibold">Shell</h3>
+          <Pref
+            label="Keep the shell in sync"
+            hint="Rewrites your aliases file whenever an alias changes, and when Ramz starts, so a new terminal always has what you saved. Only after you have pressed Sync once yourself, and never while there are export errors."
+            checked={config?.prefs.autoSync ?? true}
+            busy={busy}
+            onChange={(autoSync) => savePref({ autoSync })}
+          />
+        </section>
+
         {inApp && (
           <section className="space-y-2 border-t border-neutral-200 pt-4 dark:border-neutral-800">
             <h3 className="font-semibold">App</h3>

@@ -1,6 +1,6 @@
 import { app, BrowserWindow, Tray, Menu, clipboard, globalShortcut, ipcMain, nativeImage, powerMonitor, powerSaveBlocker, screen, shell } from "electron";
 import path from "node:path";
-import { RamzError, getPrefs } from "../server/core.ts";
+import { RamzError, autoSync, getPrefs } from "../server/core.ts";
 import { STORE_PATH } from "../server/store.ts";
 import type { Prefs } from "../shared/schema.ts";
 import { HANDLERS, CHANNELS } from "./ipc.ts";
@@ -23,7 +23,7 @@ const HOTKEY = process.env.RAMZ_HOTKEY ?? "CommandOrControl+Shift+K";
 const HOTKEY_MAIN = process.env.RAMZ_HOTKEY_MAIN ?? "CommandOrControl+Shift+M";
 
 // Mirrors the stored preferences, so window callbacks can read them synchronously.
-let prefs: Prefs = { showInDock: true, hideOnBlur: true, debug: false, kindOrder: [], sort: {} };
+let prefs: Prefs = { showInDock: true, hideOnBlur: true, debug: false, autoSync: true, kindOrder: [], sort: {} };
 
 let panel: BrowserWindow | null = null;
 let main: BrowserWindow | null = null;
@@ -472,6 +472,9 @@ app.whenReady().then(() => {
   // tile the Dock will actually keep. LSUIElement would take all three away, so
   // hiding the icon is done at runtime, only if asked for.
   void getPrefs().then(applyPrefs).catch(() => {});
+  // Catches whatever changed the store while Ramz was not running: an import, a
+  // hand edit, a copy from another machine.
+  void autoSync().catch(() => {});
   panel = createPanel();
   if (process.env.RAMZ_SELFTEST) { panel.once("ready-to-show", () => showPanel("selftest")); void selfTest(panel); }
   // Opened by hand? Show it. Opened at login? Stay out of the way.

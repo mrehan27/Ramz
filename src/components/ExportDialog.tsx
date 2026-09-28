@@ -85,7 +85,7 @@ export function ExportDialog({
               )}
               <span className="text-neutral-600 dark:text-neutral-400">
                 {preview.upToDate
-                  ? `${wired.map((r) => r.name).join(" and ")} loads all ${preview.count}. Last synced ${ago(preview.syncedAt)}.`
+                  ? `${wired.map((r) => r.name).join(" and ")} loads all ${preview.count}. Last synced ${ago(preview.syncedAt)}${config?.prefs.autoSync ? ", and kept in sync automatically" : ""}.`
                   : preview.installed
                     ? `Your shell has the copy from ${ago(preview.syncedAt)}, and your aliases have changed since. Sync to update it.`
                     : `${wired.map((r) => r.name).join(" and ")} is set up, but nothing has been synced for it to load. Press Sync.`}

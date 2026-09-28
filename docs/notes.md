@@ -55,9 +55,13 @@ live only in conversation.
   initialisers, which React keeps across a re-render, so a newly marked default only appeared
   after leaving the page and coming back. The key makes an edited card rebuild itself; a copy
   does not bump `updatedAt`, so it does not throw away what you were typing.
-- **No `Tip` inside a scroll container.** It is absolutely positioned, so `overflow: auto`
-  clips it: on the variants grid it was cut 11px above and 96px past the right edge. Dense
-  places inside a scroller use the native `title` instead, which the browser draws on top.
+- **`Tip` draws in a portal and places itself.** It used to be absolutely positioned inside the
+  layout, always centred above its anchor, so any scrolling parent clipped it (the variants grid
+  cut it 11px above and 96px past the edge) and the header buttons at the top right pushed it
+  off the window. Now it renders into `document.body` with `position: fixed`, goes below when
+  there is no room above, and is clamped 8px inside the window. Measured: every tooltip with an
+  on-screen anchor lands inside a 900px window, at the top, middle and bottom of a long list.
+  The native `title` used on the variants grid for this reason could now go back to `Tip`.
 - **The default variant lives on the variant, not on the entry.** A flag survives renaming;
   a `defaultVariant: string` on the entry would have to be kept in step with the name. The
   schema allows at most one.
@@ -138,6 +142,15 @@ live only in conversation.
   whether it is visible and has its search box, since a live renderer that has not painted
   looks identical to a working one from the main process. Nothing typed and no entry is ever
   written to it.
+
+- **Auto sync keeps a shell current, and never sets one up.** On by default, switch in Settings >
+  Shell. After any change to an alias (save, delete, either import) and once at launch, Ramz
+  rewrites the aliases file if it differs from what Sync would write. It acts only when the
+  files already exist, so a shell nobody chose to connect is never touched, and it skips when
+  there are export errors rather than write a file that breaks every new terminal. A skip shows
+  as an amber dot on Sync to shell. No 24-hour timer: every change goes through Ramz, and launch
+  catches the rest (an import, a hand edit, a store copied from elsewhere), so a timer would
+  have nothing left to find. Tag renames do not trigger it, because tags never reach the file.
 
 - **Order is a choice, and pinned still wins.** A sort per kind, stored in prefs, with pinned
   entries on top in every one of them including manual: pinning is how you say "this one

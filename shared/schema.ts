@@ -96,6 +96,11 @@ export const PrefsSchema = z.object({
   hideOnBlur: z.boolean().default(true),
   /** Panel, renderer and shortcut state in the menubar menu. Off unless something is wrong. */
   debug: z.boolean().default(false),
+  /**
+   * Rewrite the shell file whenever an alias changes, and at launch. Acts only
+   * once the shell has been synced by hand, so on by default is safe.
+   */
+  autoSync: z.boolean().default(true),
 });
 
 export const StoreSchema = z.object({

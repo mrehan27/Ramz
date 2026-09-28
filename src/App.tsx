@@ -134,6 +134,13 @@ function Shelf() {
   /** The portable file dialogs, opened from Settings and so able to outlive it. */
   const [transfer, setTransfer] = useState<"export" | "import" | null>(null);
 
+  /**
+   * Set up once, but behind what you saved. With auto sync on this should only
+   * show when a sync was skipped, e.g. for an export error: a skip nobody sees
+   * is how the shell drifts.
+   */
+  const stale = Boolean(config?.shell.installed && !config.shell.upToDate);
+
   /** The sort map is one pref, so a change has to carry the other kinds with it. */
   const setSort = (kind: KindId, key: SortKey) =>
     api.updatePrefs({ sort: { ...(config?.prefs.sort ?? {}), [kind]: key } }).then(refresh);
@@ -279,8 +286,13 @@ function Shelf() {
                 <Tip text="Read aliases and functions out of an existing shell file or folder. The source file is never modified.">
                   <Button onClick={() => setDialog("import")}>Scan shell files</Button>
                 </Tip>
-                <Tip text="Write the ticked commands into your shell files, and wire your shell to load them. One way: Ramz writes, your shell reads.">
-                  <Button onClick={() => setDialog("export")}>Sync to shell</Button>
+                <Tip text={stale
+                  ? "Your shell has an older copy of your aliases. Open this to see why, and sync."
+                  : "Write the ticked commands into your shell files, and wire your shell to load them. One way: Ramz writes, your shell reads."}>
+                  <Button onClick={() => setDialog("export")}>
+                    Sync to shell
+                    {stale && <span aria-label="out of date" className="h-1.5 w-1.5 rounded-full bg-amber-500" />}
+                  </Button>
                 </Tip>
               </>
             ) : undefined,
