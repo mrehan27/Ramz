@@ -31,6 +31,10 @@ export type ExportPreview = {
   aliasesFile: string;
   loaderFile: string;
   installed: boolean;
+  /** The files on disk match what Sync would write now. */
+  upToDate: boolean;
+  /** When the files on disk were written, empty if never. */
+  syncedAt: string;
 };
 
 export type ScannedAlias = {

@@ -179,6 +179,11 @@ live only in conversation.
   renderer process and watching it come back. The tray menu reports panel and renderer state,
   because a packaged app has no console to read.
 
+- **"Connected" has to mean the files exist too.** The simplified Sync dialog showed a green
+  connected from the rc block alone. The owner had pasted the block but Sync had never run, so
+  `~/.config/ramz` did not exist and `clr` was not found. The status is now not synced yet, out
+  of date or up to date, comparing the files on disk with what Sync would write. The comparison
+  ignores the header's timestamp line, which otherwise makes two identical syncs differ.
 - **`npm run typecheck` did not cover `electron/` until 2026-09-24.** esbuild bundles the main
   process by stripping types without checking them, so four errors had been sitting there,
   one of them a real bug: `click: openMain` on a menu item makes Electron call

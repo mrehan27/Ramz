@@ -127,8 +127,10 @@ if [ -r "${XDG_CONFIG_HOME:-$HOME/.config}/ramz/init.sh" ]; then . "${XDG_CONFIG
 # END Ramz SECTION
 ```
 
-The dialog shows the block with a Copy button until it finds it, then just says
-**connected**. Paste it yourself, or let Ramz add it from Details. The line only reads a file
+The dialog shows the block with a Copy button until it finds it. After that the status says
+both halves, because a connected rc with nothing to load looks done and is not: **not synced
+yet** (the rc is set up, no files), **out of date** (the files are older than your aliases,
+with when you last synced), or **up to date**. Paste it yourself, or let Ramz add it from Details. The line only reads a file
 Ramz owns, and does nothing, exit status 0, if that file is gone. Ramz recognises the older
 single line, and the same block with `[ ] &&` in place of the `if`, so an rc you set up
 earlier keeps working.

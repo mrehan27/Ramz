@@ -187,17 +187,28 @@ export async function exportPreview() {
   for (const [name, resolved] of Object.entries(shadows)) {
     problems.push({ name, level: "warn", message: `shadows an existing command (${resolved})` });
   }
+  const aliases = renderAliases(entries);
+  const onDisk = existsSync(aliasesPath()) ? await readFile(aliasesPath(), "utf8") : null;
+  const installed = existsSync(loaderPath()) && onDisk !== null;
   return {
-    aliases: renderAliases(entries),
+    aliases,
     loader: renderLoader(),
     count: exportable.length,
     problems,
     configDir: RAMZ_DIR,
     aliasesFile: aliasesPath(),
     loaderFile: loaderPath(),
-    installed: existsSync(loaderPath()),
+    installed,
+    // What the shell has versus what Sync would write now. Without this, a
+    // connected rc looked finished even with nothing on disk to load.
+    upToDate: installed && withoutStamp(onDisk!) === withoutStamp(aliases),
+    syncedAt: onDisk?.match(STAMP)?.[1] ?? "",
   };
 }
+
+/** The generated header carries the time it was written, which is not content. */
+const STAMP = /^# (\d{4}-\d{2}-\d{2}T[\d:.]+Z)$/m;
+const withoutStamp = (text: string) => text.replace(STAMP, "");
 
 /** Writes only inside RAMZ_DIR: the loader, plus one file per generated group. */
 export async function runExport() {

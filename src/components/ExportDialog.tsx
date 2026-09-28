@@ -4,6 +4,17 @@ import { Badge, Button, Modal, cx } from "./ui.tsx";
 import { CopyButton } from "./CopyButton.tsx";
 import { useToast } from "./Toast.tsx";
 
+/** "3 days ago", or the date once it is far enough back that a count stops helping. */
+function ago(iso: string) {
+  if (!iso) return "never";
+  const mins = Math.round((Date.now() - Date.parse(iso)) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  if (mins < 60 * 24) return `${Math.round(mins / 60)} h ago`;
+  if (mins < 60 * 24 * 14) return `${Math.round(mins / 1440)} days ago`;
+  return iso.slice(0, 10);
+}
+
 /**
  * Two questions, answered in order: is your shell connected, and do you want
  * to write the aliases now. Everything else (the generated files, per-rc
@@ -62,10 +73,22 @@ export function ExportDialog({
       {preview && (
         <div className="space-y-5 text-sm">
           {wired.length > 0 ? (
-            <p className="flex items-center gap-2">
-              <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300">connected</Badge>
+            // Connected means both halves: the rc loads Ramz, and there is something
+            // current for it to load. The rc alone once showed green with no files.
+            <p className="flex flex-wrap items-center gap-2">
+              {preview.upToDate ? (
+                <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300">up to date</Badge>
+              ) : (
+                <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
+                  {preview.installed ? "out of date" : "not synced yet"}
+                </Badge>
+              )}
               <span className="text-neutral-600 dark:text-neutral-400">
-                {wired.map((r) => r.name).join(" and ")} loads Ramz.
+                {preview.upToDate
+                  ? `${wired.map((r) => r.name).join(" and ")} loads all ${preview.count}. Last synced ${ago(preview.syncedAt)}.`
+                  : preview.installed
+                    ? `Your shell has the copy from ${ago(preview.syncedAt)}, and your aliases have changed since. Sync to update it.`
+                    : `${wired.map((r) => r.name).join(" and ")} is set up, but nothing has been synced for it to load. Press Sync.`}
               </span>
             </p>
           ) : (
