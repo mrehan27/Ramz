@@ -1,4 +1,5 @@
 import type { Param } from "../../shared/schema.ts";
+import { Choices } from "./Choices.tsx";
 import { Input } from "./ui.tsx";
 
 /** The fill-in used by anything that resolves placeholders in more than one place. */
@@ -29,6 +30,7 @@ export function ArgFields({
               placeholder={p.default ? `${p.default} (default)` : p.name}
               onChange={(e) => onChange({ ...values, [p.name]: e.target.value })}
             />
+            <Choices choices={p.choices} value={values[p.name] ?? ""} onPick={(c) => onChange({ ...values, [p.name]: c })} />
           </label>
         ))}
       </div>

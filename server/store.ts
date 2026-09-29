@@ -54,7 +54,7 @@ function withDerivedParams<T extends EntryInput>(entry: T): T {
   if (missing.length === 0) return entry;
   return {
     ...entry,
-    params: [...entry.params, ...missing.map((name) => ({ name, description: "", default: "", required: true }))],
+    params: [...entry.params, ...missing.map((name) => ({ name, description: "", default: "", required: true, choices: [] }))],
   };
 }
 

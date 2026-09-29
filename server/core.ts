@@ -350,7 +350,7 @@ export async function runImport(payload: unknown) {
       tags: item.tags.length ? item.tags : ["imported"],
       command: item.command,
       variants: [],
-      params: item.params.map((p) => ({ ...p, description: "" })),
+      params: item.params.map((p) => ({ ...p, description: "", choices: [] })),
       steps: [],
       body: "",
       asFunction: item.asFunction,

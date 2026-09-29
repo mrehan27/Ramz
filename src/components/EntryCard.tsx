@@ -3,6 +3,7 @@ import { needsFill, resolveCommand, type Entry } from "../../shared/schema.ts";
 import type { TagColor } from "../../shared/schema.ts";
 import { Badge, Button, Input, Tip, cx } from "./ui.tsx";
 import { TagBadge } from "./TagBadge.tsx";
+import { Choices } from "./Choices.tsx";
 import { CopyButton } from "./CopyButton.tsx";
 import { CommandText } from "./CommandText.tsx";
 import { Grip, type GripProps } from "./Grip.tsx";
@@ -156,6 +157,7 @@ export function EntryCard({
                     if (e.key === "Escape") setFilling(false);
                   }}
                 />
+                <Choices choices={p.choices} value={values[p.name] ?? ""} onPick={(c) => setValues((v) => ({ ...v, [p.name]: c }))} />
               </label>
             ))}
           </div>

@@ -32,6 +32,7 @@ function complete(entries) {
     name: "", description: "", tags: [], command: "", params: [], steps: [], variants: [],
     body: "", asFunction: false, pinned: false, archived: false, exported: false,
     useCount: 0, lastUsedAt: "", ...e,
+    params: (e.params ?? []).map((p) => ({ description: "", default: "", required: false, choices: [], ...p })),
   }));
 }
 

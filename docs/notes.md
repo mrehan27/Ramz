@@ -11,7 +11,7 @@ live only in conversation.
 - **In daily use by the owner** (as of 2026-09-29). His shell is connected through the fenced
   block in `~/.zshrc`, synced, and kept current by auto sync. Diagnostics is on, so
   `~/Library/Logs/Ramz/panel.log` has been recording since 2026-09-24.
-- **`npm test` covers the logic, running it covers the rest.** 37 cases: the shell renderer
+- **`npm test` covers the logic, running it covers the rest.** 38 cases: the shell renderer
   and quoting, real bash and zsh loads, the rc block, sync state and auto sync, search filters,
   per-kind validation, sorting, and the import merge. `npm run typecheck` covers `electron/`
   too. Anything in the UI still has to be run: the selftest and the headless harnesses in
@@ -186,6 +186,12 @@ live only in conversation.
   partial import you cannot see is worse than a clear refusal.
 - **The shell scanner is now called Scan shell files.** It reads rc files; the new Import reads
   ours. Two things called Import would have been the same confusion as the old Copy button.
+- **A list of values is a choice on the argument, not a variant.** A variant is a whole named
+  set of values, which suits a prompt that changes in several places per repo. One argument
+  with a handful of values (fastlane lanes) wanted a pick list, so `choices` sits on the
+  param and works in every kind with placeholders. Chips, not a dropdown or `<datalist>`, for
+  the panel reason in VariantPicker. Choices force the fill step even over a default, or a
+  default would copy straight past the list.
 
 ## Traps already hit (do not rediscover)
 

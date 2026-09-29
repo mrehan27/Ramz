@@ -97,6 +97,12 @@ ports() { lsof -nP -iTCP:"${1:-3000}" -sTCP:LISTEN; }   # default value
 Aliases cannot take arguments in any shell, which is why anything parameterised is
 emitted as a function. Output is restricted to syntax valid in both bash and zsh.
 
+An argument can also have **choices**, a comma separated list in the editor, such as the
+lanes for `bundle exec fastlane {{lane}}`. They show as chips under the field: typing narrows
+them, Tab reaches them, Enter or a click picks one, and the field still takes anything else.
+An argument with choices always asks, even with a default, so the list is never skipped.
+Choices are searchable, so typing a lane finds its command. Export ignores them.
+
 Arguments become positional parameters in the order they are listed, so **arguments with a
 default belong last**, otherwise callers have to pass an empty string to skip one. Export
 warns when the order would force that.

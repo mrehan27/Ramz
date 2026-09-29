@@ -29,5 +29,5 @@ export function entry(over: Partial<Entry> & { kind?: Entry["kind"] } = {}): Ent
   } as Entry;
 }
 
-export const param = (name: string, dflt = "") =>
-  ({ name, description: "", default: dflt, required: !dflt });
+export const param = (name: string, dflt = "", choices: string[] = []) =>
+  ({ name, description: "", default: dflt, required: !dflt, choices });

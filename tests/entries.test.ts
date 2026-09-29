@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { EntrySchema, defaultVariant, needsFill, resolveCommand } from "../shared/schema.ts";
+import { EntrySchema, cleanChoices, defaultVariant, needsFill, resolveCommand } from "../shared/schema.ts";
 import { valuesFor } from "../src/components/VariantPicker.tsx";
 import { entry, param } from "./helpers.ts";
 
@@ -56,6 +56,14 @@ test("a default variant is what opens, and variants always ask first", () => {
   assert.equal(needsFill({ params: [param("x", "1")], variants: [] }), false);
   assert.equal(needsFill({ params: [param("x", "1")], variants }), true);
   assert.equal(needsFill({ params: [param("x")], variants: [] }), true);
+});
+
+test("choices always ask, even over a default, and save clean", () => {
+  // `bundle exec fastlane {{lane}}`: a default lane would otherwise copy straight past the list.
+  assert.equal(needsFill({ params: [param("lane", "beta", ["beta", "release"])], variants: [] }), true);
+  assert.deepEqual(cleanChoices([" beta", "release ", "", "beta", "  "]), ["beta", "release"]);
+  const saved = EntrySchema.parse(entry({ kind: "snippet", command: "bundle exec fastlane {{lane}}", params: [{ name: "lane", description: "", default: "", required: true }] }));
+  assert.deepEqual(saved.params[0].choices, [], "a param saved before choices existed still loads");
 });
 
 test("an unfilled placeholder is left visible rather than dropped", () => {

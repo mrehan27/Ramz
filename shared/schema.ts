@@ -11,7 +11,12 @@ export const ParamSchema = z.object({
   description: z.string().default(""),
   default: z.string().default(""),
   required: z.boolean().default(false),
+  /** Values offered as one-click picks. Anything else can still be typed. */
+  choices: z.array(z.string()).default([]),
 });
+
+/** Trimmed, deduped, blanks dropped: the editor keeps them raw while you type. */
+export const cleanChoices = (choices: string[]) => [...new Set(choices.map((c) => c.trim()).filter(Boolean))];
 
 /**
  * A named set of placeholder values: the 10% of a prompt that changes per repo
@@ -160,10 +165,10 @@ export function entryPlaceholders(
 
 /**
  * Whether copying should stop and ask first: a placeholder with nothing to fall
- * back on, or a variant to choose between. Everything else copies in one click.
+ * back on, or a variant or choice to pick. Everything else copies in one click.
  */
 export function needsFill(entry: { params: Param[]; variants: Variant[] }) {
-  return entry.variants.length > 0 || entry.params.some((p) => !p.default);
+  return entry.variants.length > 0 || entry.params.some((p) => !p.default || p.choices.length > 0);
 }
 
 /** The variant to start on, if the author named one. */

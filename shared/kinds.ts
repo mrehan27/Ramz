@@ -60,7 +60,7 @@ export const SHELL_NAME = /^[A-Za-z_][A-Za-z0-9_.-]*$/;
 const commandSearch = (e: Entry): SearchDoc => ({
   primary: [e.name, e.title],
   strong: [e.description],
-  weak: [e.command, ...e.tags],
+  weak: [e.command, ...e.tags, ...e.params.flatMap((p) => p.choices)],
 });
 
 export const KINDS: KindDef[] = [

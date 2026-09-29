@@ -47,7 +47,7 @@ wipes. The path never changes, so a Dock tile pinned once keeps working.
 npm test          # node --test over tests/*.test.ts, no framework, no new dependency
 ```
 
-Deliberately small: 37 cases over the logic that has actually broken, not coverage for its own
+Deliberately small: 38 cases over the logic that has actually broken, not coverage for its own
 sake. What they pin down:
 
 | file | what it guards |
@@ -57,7 +57,7 @@ sake. What they pin down:
 | `tests/sync.test.ts` | that the shell only reads as up to date when the files exist and match what Sync would write, and that auto sync never sets a shell up, keeps one current, and skips rather than write a broken file |
 | `tests/sort.test.ts` | pinned first in every sort, each sort's order and tie-break, repairing a stale sidebar order |
 | `tests/query.test.ts` | search filters, and that long bodies stay out of the fuzzy index |
-| `tests/entries.test.ts` | per-kind validation, the one-default-variant rule, variant switching, and that older stored entries still load |
+| `tests/entries.test.ts` | per-kind validation, the one-default-variant rule, variant switching, argument choices, and that older stored entries still load |
 
 Two rules for anything added here:
 

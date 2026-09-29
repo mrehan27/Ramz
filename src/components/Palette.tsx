@@ -3,6 +3,7 @@ import { KINDS, kind } from "../../shared/kinds.ts";
 import { hasFilters, parseQuery } from "../../shared/query.ts";
 import { defaultVariant, needsFill, resolveCommand, type Entry, type TagColor, type Variant } from "../../shared/schema.ts";
 import { useSearch } from "../lib/search.ts";
+import { Choices } from "./Choices.tsx";
 import { Input, cx } from "./ui.tsx";
 import { TagBadge } from "./TagBadge.tsx";
 import { VariantChips, valuesFor } from "./VariantPicker.tsx";
@@ -156,7 +157,8 @@ export function Palette({
       if (on instanceof HTMLButtonElement || on instanceof HTMLSelectElement) {
         if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
           e.preventDefault();
-          const all = [...(chips.current?.querySelectorAll<HTMLButtonElement>("button") ?? [])];
+          const group = on.closest('[role="group"]') ?? chips.current;
+          const all = [...(group?.querySelectorAll<HTMLButtonElement>("button") ?? [])];
           const next = all.indexOf(on as HTMLButtonElement) + (e.key === "ArrowRight" ? 1 : -1);
           all[Math.max(0, Math.min(all.length - 1, next))]?.focus();
         }
@@ -288,6 +290,11 @@ export function Palette({
                     value={values[p.name] ?? ""}
                     placeholder={p.default ? `${p.default} (default)` : p.name}
                     onChange={(e) => setValues((v) => ({ ...v, [p.name]: e.target.value }))}
+                  />
+                  <Choices
+                    choices={p.choices}
+                    value={values[p.name] ?? ""}
+                    onPick={(c) => { setValues((v) => ({ ...v, [p.name]: c })); focusNextBlank(); }}
                   />
                 </label>
               ))}

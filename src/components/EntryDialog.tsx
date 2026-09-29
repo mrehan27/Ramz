@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { KINDS, kind as kindDef, type KindId } from "../../shared/kinds.ts";
-import { entryPlaceholders, type Entry, type EntryInput, type Param, type Step, type Variant } from "../../shared/schema.ts";
+import { cleanChoices, entryPlaceholders, type Entry, type EntryInput, type Param, type Step, type Variant } from "../../shared/schema.ts";
 import { Button, Field, Input, Modal, Textarea, Tip, cx } from "./ui.tsx";
 import { TagInput } from "./TagInput.tsx";
 import type { TagColor } from "../../shared/schema.ts";
@@ -59,7 +59,7 @@ export function EntryDialog({
     setForm((f) => {
       const kept = new Map(f.params.map((p) => [p.name, p]));
       const next: Param[] = detected.map(
-        (n) => kept.get(n) ?? { name: n, description: "", default: "", required: true },
+        (n) => kept.get(n) ?? { name: n, description: "", default: "", required: true, choices: [] },
       );
       const same = next.length === f.params.length && next.every((p, i) => p === f.params[i]);
       return same ? f : { ...f, params: next };
@@ -94,7 +94,7 @@ export function EntryDialog({
     setSaving(true);
     setError(null);
     try {
-      await onSave(form);
+      await onSave({ ...form, params: form.params.map((p) => ({ ...p, choices: cleanChoices(p.choices) })) });
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "save failed");
@@ -161,7 +161,7 @@ export function EntryDialog({
         {form.params.length > 0 && (
           <div className="rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
             <p className="mb-2 text-xs font-medium text-neutral-500 dark:text-neutral-400">
-              Placeholders found above. A default is what fills in when nothing else does
+              Placeholders found above. A default is what fills in when nothing else does; choices are offered to pick from
             </p>
             <div className="space-y-2">
               {form.params.map((p, i) => (
@@ -173,6 +173,13 @@ export function EntryDialog({
                     <input type="checkbox" checked={p.required} onChange={(e) => setParam(i, { required: e.target.checked })} />
                     required
                   </label>
+                  {/* Kept raw while typing, so a trailing comma or space survives until save. */}
+                  <Input
+                    value={p.choices.join(",")}
+                    placeholder="choices, comma separated (optional)"
+                    className="font-mono sm:col-span-3 sm:col-start-2"
+                    onChange={(e) => setParam(i, { choices: e.target.value ? e.target.value.split(",") : [] })}
+                  />
                 </div>
               ))}
             </div>
