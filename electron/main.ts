@@ -100,6 +100,40 @@ function watchPanel(win: BrowserWindow) {
   win.on("responsive", () => log.write("responsive"));
 }
 
+/**
+ * A panel window that lives through a display disconnect can stop being drawn:
+ * macOS keeps it off screen while Electron and the page both report it visible,
+ * so no check from in here can see it. Seen on 2026-09-29 after an external
+ * display dropped out and came back during a lock; the window server said
+ * onscreen=false for the old window and true for a fresh one at the same spot.
+ * So after any display change, or an unlock, swap in a fresh window.
+ *
+ * Debounced, because a display flaps (removed and added twice in five seconds),
+ * and never while the panel is open, because pulling it out from under you
+ * would be worse than the bug.
+ */
+let renewal: NodeJS.Timeout | null = null;
+function renewPanelSoon(why: string, delay = 1500) {
+  if (renewal) clearTimeout(renewal);
+  renewal = setTimeout(() => {
+    renewal = null;
+    renewPanel(why);
+  }, delay);
+  renewal.unref?.();
+}
+
+function renewPanel(why: string) {
+  if (!panel || panel.isDestroyed()) return;
+  if (panel.isVisible()) {
+    log.write("renew-deferred", { why });
+    panel.once("hide", () => renewPanelSoon(why, 300));
+    return;
+  }
+  log.write("renew", { why });
+  panel.destroy();
+  panel = createPanel();
+}
+
 /** The full UI, for managing entries rather than reaching for one. */
 function createMain(view?: "settings") {
   const win = new BrowserWindow({
@@ -455,13 +489,13 @@ app.whenReady().then(() => {
   armHotkeysSoon();
   // Both are known moments for macOS to drop a global hotkey.
   powerMonitor.on("resume", () => { log.write("power", { what: "resume" }); armHotkeys(); });
-  powerMonitor.on("unlock-screen", () => { log.write("power", { what: "unlock" }); armHotkeys(); });
+  powerMonitor.on("unlock-screen", () => { log.write("power", { what: "unlock" }); armHotkeys(); renewPanelSoon("unlock"); });
   powerMonitor.on("suspend", () => log.write("power", { what: "suspend" }));
   powerMonitor.on("lock-screen", () => log.write("power", { what: "lock" }));
   // A panel placed on a display that has since gone away is one way to be invisible.
   const displays = () => screen.getAllDisplays().map((d) => `${d.id}:${rect(d.bounds)}`);
-  screen.on("display-added", () => log.write("displays", { what: "added", now: displays() }));
-  screen.on("display-removed", () => log.write("displays", { what: "removed", now: displays() }));
+  screen.on("display-added", () => { log.write("displays", { what: "added", now: displays() }); renewPanelSoon("display added"); });
+  screen.on("display-removed", () => { log.write("displays", { what: "removed", now: displays() }); renewPanelSoon("display removed"); });
   // macOS fires this with nothing in `changed` constantly (two in three events in the
   // first real log), which would crowd the useful history out of the size cap.
   screen.on("display-metrics-changed", (_e, d, changed) => {
@@ -522,6 +556,16 @@ async function selfTest(win: BrowserWindow) {
     result.awake = `${awakeOn() ? "on" : "off"}, ${awakeLeft()}`;
     letSleep();
     result.awakeAfterOff = awakeOn() ? "still on" : "off";
+
+    // The display-change renewal: waits while the panel is open, replaces it once hidden.
+    const before = panel?.id;
+    renewPanel("selftest");
+    const keptWhileOpen = panel?.id === before;
+    panel?.hide();
+    await new Promise((r) => setTimeout(r, 600));
+    result.renew = keptWhileOpen && panel && panel.id !== before && !panel.isDestroyed()
+      ? `kept while open, replaced once hidden (window ${before} -> ${panel.id})`
+      : `unexpected: kept=${keptWhileOpen} before=${before} after=${panel?.id}`;
     console.log("SELFTEST " + JSON.stringify(result, null, 2));
   } catch (e) {
     console.error("SELFTEST threw:", (e as Error).message);

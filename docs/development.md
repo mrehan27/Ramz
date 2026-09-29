@@ -97,6 +97,16 @@ The events that matter are `show` (trigger, state before and after), then `show-
 `displays`, `rebuild`, `hotkey`) is context for why. To simulate a hung panel, `kill -STOP` the
 renderer pid recorded in any snapshot, then ask for the panel.
 
+When the log says `show-ok` and nothing is on screen, ask macOS instead:
+
+```sh
+swift scripts/window-server.swift     # displays, and every Ramz window with onscreen, alpha, layer
+```
+
+The panel is the 640x460 window at layer 1000. Electron and the page can both report it
+visible while this says `onscreen=false`, which is exactly how the stuck panel was found. Run
+it in a loop while you press the hotkey to see the transition, or its absence.
+
 ## The README demo
 
 ```sh

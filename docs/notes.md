@@ -143,6 +143,17 @@ live only in conversation.
   looks identical to a working one from the main process. Nothing typed and no entry is ever
   written to it.
 
+- **The panel is replaced after any display change or unlock.** Diagnosed on 2026-09-29 while
+  it was stuck: the log showed `show-ok` (visible, focused, page answering it was visible with
+  its search box), and the window server said the same window was `onscreen=false` for all 6.5
+  seconds it was supposedly up. A fresh window at the same spot, same hotkey, was
+  `onscreen=true` and the owner saw it. It began right after the external display dropped out
+  and came back twice during a lock, so after `display-added`, `display-removed` or
+  `unlock-screen` a fresh panel is swapped in: 1.5s after the last event, never while it is
+  open, and not counted against the crash-rebuild limit. Which of display change and lock is
+  the real trigger is not separated; both were in the same five seconds, so both renew. The
+  earlier hung-renderer hypothesis was wrong: the renderer was fine all along.
+
 - **Auto sync keeps a shell current, and never sets one up.** On by default, switch in Settings >
   Shell. After any change to an alias (save, delete, either import) and once at launch, Ramz
   rewrites the aliases file if it differs from what Sync would write. It acts only when the
@@ -192,6 +203,10 @@ live only in conversation.
   renderer process and watching it come back. The tray menu reports panel and renderer state,
   because a packaged app has no console to read.
 
+- **Electron's `isVisible()` can be true for a window macOS is not drawing.** So can the page's
+  own `visibilityState`. Neither is evidence the window is on screen; only the window server
+  knows. `scripts/window-server.swift` asks it, with positions and flags only, which needs no
+  screen recording permission.
 - **`pgrep -f` matches command lines, including your own.** `install:app` checked for a running
   copy with `pgrep -f "Ramz.app/Contents/MacOS/Ramz"`, so a shell whose command mentioned that
   path counted as Ramz: the install reported "still running" after Ramz had already quit (the
@@ -260,14 +275,9 @@ display-sleep assertion holds, but a policy-forced lock runs on its own timer). 
 now in use: he pasted the fenced block into `~/.zshrc` by hand, which is where that format came
 from.
 
-**The panel that sometimes does not appear** (quit and relaunch was the only fix) is being
-logged, not yet diagnosed. Ask him to turn Diagnostics on in Settings and leave it on; after the
-next failure, menubar > Copy recent log. Look for `show-suspect` lines and what came just before
-them. The leading hypothesis, **not verified**: a renderer that is alive but hung. A frozen
-renderer produced exactly that line in testing, and Chromium never called it `unresponsive`
-because a panel you cannot see receives no input to time out on, so the existing auto-rebuild
-never fires. If the log confirms it, the fix is to rebuild the panel when the probe gets no
-answer.
+**The panel that sometimes does not appear** is diagnosed and fixed as of 2026-09-29; see the
+decision below. If it comes back, the log will show `renew` events after display changes, and
+`swift scripts/window-server.swift` while it is stuck says whether macOS has it on screen.
 
 Import and export of a portable file is **built**; see the decision above for the rules it
 follows.
