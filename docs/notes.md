@@ -8,9 +8,13 @@ live only in conversation.
 
 - **Written entirely by Claude**, directed and reviewed by the owner. Which is why these
   notes exist: they carry the context a fresh session would otherwise have to rediscover.
-- **`npm test` covers the logic, running it covers the rest.** 19 cases over the shell
-  renderer and quoting, the search filters and per-kind validation, including a real bash and
-  zsh load. Anything in the UI still has to be run: the selftest and the headless harnesses in
+- **In daily use by the owner** (as of 2026-09-29). His shell is connected through the fenced
+  block in `~/.zshrc`, synced, and kept current by auto sync. Diagnostics is on, so
+  `~/Library/Logs/Ramz/panel.log` has been recording since 2026-09-24.
+- **`npm test` covers the logic, running it covers the rest.** 37 cases: the shell renderer
+  and quoting, real bash and zsh loads, the rc block, sync state and auto sync, search filters,
+  per-kind validation, sorting, and the import merge. `npm run typecheck` covers `electron/`
+  too. Anything in the UI still has to be run: the selftest and the headless harnesses in
   [development.md](development.md) are how.
 - **v0.1.0 is out and the install path is proven.** Cut from `main` with `npm run release`,
   then installed by running the README's curl line for real: it found the release, downloaded
@@ -275,9 +279,12 @@ display-sleep assertion holds, but a policy-forced lock runs on its own timer). 
 now in use: he pasted the fenced block into `~/.zshrc` by hand, which is where that format came
 from.
 
-**The panel that sometimes does not appear** is diagnosed and fixed as of 2026-09-29; see the
-decision below. If it comes back, the log will show `renew` events after display changes, and
-`swift scripts/window-server.swift` while it is stuck says whether macOS has it on screen.
+**The panel that sometimes does not appear** is diagnosed and fixed as of 2026-09-29, and the
+fix is installed; see the decision above. **Still to confirm:** after the owner's next lock or
+monitor reconnect, the log should show a `renew` event and the hotkey should work. If it gets
+stuck again, the agreed routine is: he does not quit, and tells us while it is stuck. Then read
+the log directly (no need for him to copy it), and run `swift scripts/window-server.swift` in a
+loop while he presses the hotkey. That is how it was caught the first time.
 
 Import and export of a portable file is **built**; see the decision above for the rules it
 follows.
@@ -292,10 +299,12 @@ follows.
 2. Notes cannot reach the palette today, because they have no single thing to copy. Worth
    revisiting: a note is often exactly what you are hunting for. Prompts do reach it, via
    `copyText` on the kind, which is the shape a note would need too.
-3. The menubar diagnostics block (behind the `debug` pref) can come out once the invisible
-   panel has stayed away for a while. It exists because a packaged app has no console.
+3. Diagnostics (the menubar block and the panel log, behind the `debug` pref) stays until the
+   renewal fix has held for a while. After that the log could stay and the menubar block go.
 4. Variants only substitute values. A prompt whose platforms differ by a whole paragraph has
    to keep that paragraph in a placeholder, which works but reads oddly in the editor.
+5. The variants grid uses the native `title` for its hints, from when `Tip` could not live in a
+   scroller. `Tip` now can, so those could move back for a consistent look. Cosmetic.
 
 ---
 
