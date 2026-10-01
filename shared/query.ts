@@ -13,9 +13,13 @@ export type Filters = { kinds: KindId[]; tags: string[]; text: string };
 /** Every word that names a kind. One word may name more than one: `cmd` is both. */
 const KEYWORDS = (() => {
   const map = new Map<string, KindId[]>();
+  // A first letter belongs to the first kind that has it: `s:` stays snippets.
+  const initials = new Set<string>();
   for (const k of KINDS) {
+    const initial = initials.has(k.id[0]) ? [] : [k.id[0]];
+    initials.add(k.id[0]);
     const words = new Set([
-      k.id, `${k.id}s`, k.singular.toLowerCase(), k.plural.toLowerCase(), k.id[0],
+      k.id, `${k.id}s`, k.singular.toLowerCase(), k.plural.toLowerCase(), ...initial,
       ...(k.keywords ?? []),
     ]);
     for (const word of words) map.set(word, [...(map.get(word) ?? []), k.id]);

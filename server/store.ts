@@ -12,7 +12,7 @@ import { DATA_DIR, PROJECT_ROOT } from "./paths.ts";
 export const STORE_PATH = process.env.RAMZ_STORE ?? path.join(DATA_DIR, "commands.json");
 export const SEED_PATH = path.join(PROJECT_ROOT, "data", "commands.example.json");
 
-const EMPTY: Store = { version: 1, entries: [], tagColors: {}, prefs: { showInDock: true, hideOnBlur: true, debug: false, autoSync: true, kindOrder: [], sort: {} } };
+const EMPTY: Store = { version: 1, entries: [], tagColors: {}, prefs: { showInDock: true, hideOnBlur: true, debug: false, autoSync: true, kindOrder: [], sort: {}, scratchDays: 30 } };
 
 /** tmp + rename so a crash mid-write can't truncate the target. */
 export async function writeAtomic(file: string, contents: string) {

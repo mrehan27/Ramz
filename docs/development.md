@@ -47,7 +47,7 @@ wipes. The path never changes, so a Dock tile pinned once keeps working.
 npm test          # node --test over tests/*.test.ts, no framework, no new dependency
 ```
 
-Deliberately small: 38 cases over the logic that has actually broken, not coverage for its own
+Deliberately small: 41 cases over the logic that has actually broken, not coverage for its own
 sake. What they pin down:
 
 | file | what it guards |
@@ -55,6 +55,7 @@ sake. What they pin down:
 | `tests/shell.test.ts` | the renderer and quoting rules, that the generated file really loads and runs in both bash and zsh, and that the rc block is added and removed exactly, never touching someone else's `init.sh` |
 | `tests/transfer.test.ts` | import merge rules: re-importing is a no-op, collisions by id and by title, what overwrite keeps, refusing a bad file whole |
 | `tests/sync.test.ts` | that the shell only reads as up to date when the files exist and match what Sync would write, and that auto sync never sets a shell up, keeps one current, and skips rather than write a broken file |
+| `tests/scratch.test.ts` | that a scratch expires from its last edit or copy, that kept and non-scratch entries never do, that the sweep and a shorter limit delete only what has expired, and that `s:` stays snippets |
 | `tests/sort.test.ts` | pinned first in every sort, each sort's order and tie-break, repairing a stale sidebar order |
 | `tests/query.test.ts` | search filters, and that long bodies stay out of the fuzzy index |
 | `tests/entries.test.ts` | per-kind validation, the one-default-variant rule, variant switching, argument choices, and that older stored entries still load |

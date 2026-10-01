@@ -25,7 +25,7 @@ handful you type every day.
 *Ramz* means symbol, code, or cipher: what you reach for when you cannot remember the
 incantation itself.
 
-Five kinds of entry:
+Six kinds of entry:
 
 | | |
 |---|---|
@@ -34,6 +34,7 @@ Five kinds of entry:
 | **Prompt** | a prompt you hand an agent again and again, with a variant per repo or platform |
 | **Runbook** | ordered steps, filled in once and copied as a script or step by step |
 | **Note** | reference text: endpoints, hosts, values you look up rather than run |
+| **Scratch** | text you need for a few days, deleted once it goes unused for 30 days unless you keep it |
 
 Everything is local. No account, no sync, no network.
 

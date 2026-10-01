@@ -18,10 +18,16 @@ const blank = (kind: KindId): EntryInput => ({
   body: "",
   asFunction: false,
   pinned: false,
+  keep: false,
   order: 0,
   archived: false,
   exported: kindDef(kind).defaults?.exported ?? false,
 });
+
+const firstLine = (text: string) => {
+  const line = text.split("\n").map((l) => l.trim()).find(Boolean) ?? "";
+  return line.length > 60 ? `${line.slice(0, 59)}…` : line;
+};
 
 export function EntryDialog({
   entry, kind, focus, onClose, onSave, knownTags, tagColors,
@@ -94,7 +100,9 @@ export function EntryDialog({
     setSaving(true);
     setError(null);
     try {
-      await onSave({ ...form, params: form.params.map((p) => ({ ...p, choices: cleanChoices(p.choices) })) });
+      // A scratch is a quick paste: naming it should not be the price of keeping it.
+      const title = form.title.trim() || (form.kind === "scratch" ? firstLine(form.body) : form.title);
+      await onSave({ ...form, title, params: form.params.map((p) => ({ ...p, choices: cleanChoices(p.choices) })) });
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "save failed");
@@ -132,8 +140,8 @@ export function EntryDialog({
               <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="gcm" className="font-mono" />
             </Field>
           )}
-          <Field label="Title">
-            <Input value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="Checkout main" />
+          <Field label={form.kind === "scratch" ? "Title (optional, the first line if blank)" : "Title"}>
+            <Input value={form.title} onChange={(e) => set("title", e.target.value)} placeholder={form.kind === "scratch" ? "" : "Checkout main"} />
           </Field>
         </div>
 

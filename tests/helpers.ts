@@ -18,6 +18,7 @@ export function entry(over: Partial<Entry> & { kind?: Entry["kind"] } = {}): Ent
     body: "",
     asFunction: false,
     pinned: false,
+    keep: false,
     order: 0,
     archived: false,
     exported: true,

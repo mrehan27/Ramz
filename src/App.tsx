@@ -3,6 +3,7 @@ import { useStore } from "./lib/useStore.ts";
 import { KINDS, page as renderPage, type KindId } from "./kinds.tsx";
 import { kind } from "../shared/kinds.ts";
 import { orderedKinds, sortKey, moved, type SortKey } from "../shared/sort.ts";
+import { DEFAULT_SCRATCH_DAYS } from "../shared/scratch.ts";
 import { api } from "./lib/api.ts";
 import { ExportDialog } from "./components/ExportDialog.tsx";
 import { ImportDialog } from "./components/ImportDialog.tsx";
@@ -123,7 +124,7 @@ function SidebarButton({
 function Shelf() {
   const {
     entries, config, tagColors, error, loading, refresh,
-    save, remove, toggleExport, togglePin, toggleArchive, markUsed, reorder, setTagColor, renameTag, deleteTag,
+    save, remove, toggleExport, togglePin, toggleArchive, toggleKeep, renew, markUsed, reorder, setTagColor, renameTag, deleteTag,
   } = useStore();
   const [current, setCurrent] = useState<View>("alias");
   /** Cleared once you navigate yourself, so the stored order only picks the first view. */
@@ -133,6 +134,14 @@ function Shelf() {
   const [dialog, setDialog] = useState<"export" | "import" | "tags" | "settings" | null>(null);
   /** The portable file dialogs, opened from Settings and so able to outlive it. */
   const [transfer, setTransfer] = useState<"export" | "import" | null>(null);
+
+  // The store changes behind this window too: the hourly scratch sweep, the panel's
+  // copy counts. Coming back to the window is when that is worth catching up on.
+  useEffect(() => {
+    const onFocus = () => void refresh();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [refresh]);
 
   /**
    * Set up once, but behind what you saved. With auto sync on this should only
@@ -275,6 +284,9 @@ function Shelf() {
             onToggleExport: toggleExport,
             onTogglePin: togglePin,
             onToggleArchive: toggleArchive,
+            onToggleKeep: toggleKeep,
+            onRenew: renew,
+            scratchDays: config?.prefs.scratchDays ?? DEFAULT_SCRATCH_DAYS,
             onUsed: markUsed,
             onTagColor: setTagColor,
             sort: sortKey(config?.prefs.sort?.[current]),
@@ -307,6 +319,7 @@ function Shelf() {
       {dialog === "settings" && (
         <SettingsDialog
           config={config}
+          entries={entries}
           onClose={() => setDialog(null)}
           onChanged={refresh}
           onTransfer={(mode) => {

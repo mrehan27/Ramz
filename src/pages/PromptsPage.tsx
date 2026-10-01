@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { kind } from "../../shared/kinds.ts";
 import { defaultVariant, resolveCommand, type Entry, type EntryInput, type TagColor, type Variant } from "../../shared/schema.ts";
+import { expiryLabel } from "../../shared/scratch.ts";
 import { allTags, isTextSearch, useSearch } from "../lib/search.ts";
 import { useOrdering } from "../lib/useOrdering.ts";
 import type { SortKey } from "../../shared/sort.ts";
@@ -20,10 +21,12 @@ const CLAMP = 6;
 /** Same width as the cards elsewhere, so Copy does not jump when it says Copied. */
 const ACTION = "min-w-[5rem] justify-center";
 
+/** Prompts, and the scratchpad: both are text you copy, with optional placeholders. */
 export function PromptsPage({
-  entries, onSave, onDelete, onToggleArchive, onUsed, onTogglePin, tagColors, onTagColor,
-  sort, onSort, onReorder,
+  kind: id, entries, onSave, onDelete, onToggleArchive, onUsed, onTogglePin, tagColors, onTagColor,
+  sort, onSort, onReorder, onToggleKeep, onRenew, scratchDays,
 }: {
+  kind: "prompt" | "scratch";
   entries: Entry[];
   onSave: (input: EntryInput, id?: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
@@ -35,7 +38,11 @@ export function PromptsPage({
   sort: SortKey;
   onSort: (key: SortKey) => void;
   onReorder: (kind: KindId, ids: string[]) => void;
+  onToggleKeep?: (entry: Entry) => Promise<void>;
+  onRenew?: (entry: Entry) => Promise<void>;
+  scratchDays?: number;
 }) {
+  const scratch = id === "scratch";
   const [query, setQuery] = useState("");
   const [tag, setTag] = useState<string | null>(null);
   const [editing, setEditing] = useState<Entry | null>(null);
@@ -44,21 +51,25 @@ export function PromptsPage({
   const [showArchived, setShowArchived] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
 
-  const ofKind = entries.filter((e) => e.kind === "prompt");
+  const ofKind = entries.filter((e) => e.kind === id);
   const archivedCount = ofKind.filter((e) => e.archived).length;
   const scoped = showArchived ? ofKind : ofKind.filter((e) => !e.archived);
   const found = useSearch(scoped, query, tag);
   // Relevance order while searching, the chosen sort otherwise.
   const { sorted: results, gripProps, rowProps, dragClass } = useOrdering(
-    "prompt", found, sort, onReorder, isTextSearch(query),
+    id, found, sort, onReorder, isTextSearch(query),
   );
 
   return (
     <div className="mx-auto max-w-4xl space-y-5 p-6">
       <header className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-lg font-semibold">{kind("prompt").plural}</h1>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">{kind("prompt").blurb}</p>
+          <h1 className="text-lg font-semibold">{kind(id).plural}</h1>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            {scratch
+              ? `Text you need for a few days. Each one is deleted ${scratchDays} days after you last copied or edited it, unless you keep it. Change the days in Settings.`
+              : kind(id).blurb}
+          </p>
         </div>
         <Button variant="primary" onClick={() => setCreating(true)}>+ New</Button>
       </header>
@@ -101,22 +112,27 @@ export function PromptsPage({
             onManageVariants={() => { setFocus("variants"); setEditing(prompt); }}
             onDelete={() => confirm(`Delete "${prompt.title}"?`) && onDelete(prompt.id)}
             onTogglePin={onTogglePin ? () => onTogglePin(prompt) : undefined}
-            onToggleArchive={onToggleArchive ? () => onToggleArchive(prompt) : undefined}
+            onToggleArchive={onToggleArchive && !scratch ? () => onToggleArchive(prompt) : undefined}
+            expiry={scratch ? expiryLabel(prompt, scratchDays ?? 30) : null}
+            onToggleKeep={scratch && onToggleKeep ? () => onToggleKeep(prompt) : undefined}
+            onRenew={scratch && onRenew ? () => onRenew(prompt) : undefined}
             onUsed={onUsed ? () => onUsed(prompt.id) : undefined}
           />
         ))}
         {results.length === 0 && (
           <p className="rounded-lg border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500 dark:border-neutral-700">
-            {ofKind.length === 0
-              ? "No prompts yet. Paste one you keep retyping, and put {{braces}} around the parts that change."
-              : "No matches."}
+            {ofKind.length !== 0
+              ? "No matches."
+              : scratch
+                ? "Nothing here. Paste something you will need again this week, and forget about cleaning it up."
+                : "No prompts yet. Paste one you keep retyping, and put {{braces}} around the parts that change."}
           </p>
         )}
       </div>
 
       {(creating || editing) && (
         <EntryDialog
-          kind="prompt"
+          kind={id}
           entry={editing ?? undefined}
           knownTags={allTags(entries)}
           tagColors={tagColors}
@@ -131,7 +147,7 @@ export function PromptsPage({
 
 function PromptCard({
   prompt, tagColors, open, onToggle, onEdit, onManageVariants, onDelete, onTogglePin, onToggleArchive, onUsed,
-  grip, row, className,
+  grip, row, className, expiry, onToggleKeep, onRenew,
 }: {
   prompt: Entry;
   tagColors: Record<string, TagColor>;
@@ -147,6 +163,10 @@ function PromptCard({
   grip?: GripProps;
   row?: React.HTMLAttributes<HTMLElement>;
   className?: string;
+  /** Scratch only: when it goes, or null once it is kept. */
+  expiry?: string | null;
+  onToggleKeep?: () => void;
+  onRenew?: () => void;
 }) {
   const preset = defaultVariant(prompt.variants);
   const [variant, setVariant] = useState<string | null>(preset?.name ?? null);
@@ -197,13 +217,16 @@ function PromptCard({
           <span className="flex items-center gap-2">
             <span className="truncate text-sm font-medium">{prompt.title}</span>
             {prompt.archived && <Badge>archived</Badge>}
+            {onToggleKeep && (prompt.keep
+              ? <Badge>kept</Badge>
+              : <span className="shrink-0 text-[11px] text-neutral-400">{expiry}</span>)}
           </span>
           {prompt.description && (
             <span className="truncate text-xs text-neutral-400 dark:text-neutral-500">{prompt.description}</span>
           )}
         </button>
 
-        {(prompt.variants.length > 0 || prompt.params.length > 0) && (
+        {kind(prompt.kind).fields.variants && (prompt.variants.length > 0 || prompt.params.length > 0) && (
           <VariantPicker
             compact
             variants={prompt.variants}
@@ -259,6 +282,16 @@ function PromptCard({
               </button>
             )}
             <div className="ml-auto flex items-center gap-1">
+              {onRenew && !prompt.keep && (
+                <Tip text="Start the clock again from today. Copying or editing it does the same.">
+                  <Button variant="ghost" onClick={onRenew}>Reset clock</Button>
+                </Tip>
+              )}
+              {onToggleKeep && (
+                <Tip text={prompt.keep ? "Let it expire again, counting from today" : "Never delete this one"}>
+                  <Button variant="ghost" onClick={onToggleKeep}>{prompt.keep ? "Let it expire" : "Keep"}</Button>
+                </Tip>
+              )}
               {onToggleArchive && (
                 <Button variant="ghost" onClick={onToggleArchive}>{prompt.archived ? "Unarchive" : "Archive"}</Button>
               )}

@@ -27,6 +27,15 @@
   reopens halfway through the last thing you copied.
 - **Notes** hold reference text rather than commands: markdown-lite, where ``` fences become
   copyable blocks, `##` is a heading and `---` a rule. Placeholders work in a note body too.
+- **The Scratchpad** is for text you need for a few days: a prompt for this week's work, a
+  query you keep pasting. Each one is deleted, for real, once it has gone unused for 30 days
+  (Settings > Scratchpad). The clock is the last copy or edit, so anything you keep using
+  stays, and **Reset clock** restarts it by hand. **Keep** stops one expiring, which is
+  different from pinning, which only moves it to the top. The title is optional: left blank,
+  it is the first line of the text. Placeholders and choices work as in a prompt, and ⌘K
+  copies them. When "a few days" turns into forever, Edit and change the kind to Prompt or
+  Snippet. A shorter limit in Settings applies at once, after saying how many it will delete;
+  otherwise expired entries go at launch and hourly after that.
 - **⌘K** opens a lookup palette: type, ↑↓, Enter copies. Commands that need arguments open
   a fill-in step first instead of copying a template with holes in it. Processes are left
   out, since there is nothing to copy.
@@ -35,7 +44,7 @@
 
   | typed | means |
   |---|---|
-  | `prompt:` `prompts:` `p:` | only prompts. Every kind answers to its own name, plural and first letter |
+  | `prompt:` `prompts:` `p:` | only prompts. Every kind answers to its own name, plural and first letter (a letter two kinds share stays with the first: `s:` is snippets, `pad:` the scratchpad) |
   | `cmd:` `command:` | aliases and snippets together, the things that run |
   | `#git` | only entries tagged `git`, matched on a prefix so `#and` finds `android` |
   | `prompt: release` | both at once. `prompt:release` works too |

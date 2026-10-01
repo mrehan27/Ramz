@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { KIND_IDS, kind } from "./kinds.ts";
 import { SORT_KEYS } from "./sort.ts";
+import { DEFAULT_SCRATCH_DAYS } from "./scratch.ts";
 
 /** Function name that strict POSIX sh accepts. bash and zsh are looser. */
 export const POSIX_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -57,6 +58,8 @@ export const EntrySchema = z
     asFunction: z.boolean().default(false),
     /** Sorts to the top of its list. */
     pinned: z.boolean().default(false),
+    /** Scratch only: never expires. */
+    keep: z.boolean().default(false),
     /** Position under the "My order" sort. Ties fall back to the title. */
     order: z.number().default(0),
     /** Kept, but out of the way: hidden from lists and from an empty palette. */
@@ -106,6 +109,8 @@ export const PrefsSchema = z.object({
    * once the shell has been synced by hand, so on by default is safe.
    */
   autoSync: z.boolean().default(true),
+  /** Scratch entries untouched for this long are deleted. */
+  scratchDays: z.number().int().min(1).max(365).default(DEFAULT_SCRATCH_DAYS),
 });
 
 export const StoreSchema = z.object({
@@ -129,6 +134,7 @@ export const EntryInputSchema = z.object({
   body: z.string().default(""),
   asFunction: z.boolean().default(false),
   pinned: z.boolean().default(false),
+  keep: z.boolean().default(false),
   order: z.number().default(0),
   archived: z.boolean().default(false),
   exported: z.boolean().default(false),

@@ -10,7 +10,7 @@
  */
 import type { Entry } from "./schema.ts";
 
-export const KIND_IDS = ["alias", "snippet", "prompt", "runbook", "note"] as const;
+export const KIND_IDS = ["alias", "snippet", "prompt", "runbook", "note", "scratch"] as const;
 export type KindId = (typeof KIND_IDS)[number];
 
 /** Entries written before runbooks were called runbooks. */
@@ -165,6 +165,30 @@ export const KINDS: KindDef[] = [
       text: [e.body],
     }),
     validate: (e) => required(e.body, "body", "a note needs something in it"),
+  },
+  {
+    id: "scratch",
+    plural: "Scratchpad",
+    singular: "Scratch",
+    icon: "◌",
+    blurb: "Text you need for a few days. Deleted once it goes unused for long enough, unless you keep it.",
+    exportable: false,
+    inPalette: true,
+    keywords: ["pad", "temp"],
+    copyText: (e) => e.body,
+    fields: { body: true },
+    bodyField: {
+      label: "Text",
+      hint: "Anything you will paste more than once this week. {{braces}} work here too.",
+      placeholder: "Review the open PRs on {{repo}} and list what is blocking each one.",
+    },
+    search: (e) => ({
+      primary: [e.title],
+      strong: [e.description],
+      weak: [...e.tags],
+      text: [e.body],
+    }),
+    validate: (e) => required(e.body, "body", "a scratch needs something in it"),
   },
 ];
 

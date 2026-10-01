@@ -22,6 +22,10 @@ export type PageProps = {
   onToggleExport: (entry: Entry) => Promise<void>;
   onTogglePin: (entry: Entry) => Promise<void>;
   onToggleArchive: (entry: Entry) => Promise<void>;
+  onToggleKeep: (entry: Entry) => Promise<void>;
+  onRenew: (entry: Entry) => Promise<void>;
+  /** How long an untouched scratch lasts. */
+  scratchDays: number;
   onUsed: (id: string) => void;
   onTagColor: (tag: string, color: TagColor | null) => void;
   /** Kind-specific buttons in the page header, e.g. Import and Sync to shell. */
@@ -35,9 +39,10 @@ export type PageProps = {
 const PAGES: Record<KindId, (props: PageProps) => ReactNode> = {
   alias: (p) => <ListPage kind="alias" {...p} />,
   snippet: (p) => <ListPage kind="snippet" {...p} />,
-  prompt: (p) => <PromptsPage {...p} />,
+  prompt: (p) => <PromptsPage kind="prompt" {...p} />,
   runbook: (p) => <RunbooksPage {...p} />,
   note: (p) => <NotesPage {...p} />,
+  scratch: (p) => <PromptsPage kind="scratch" {...p} />,
 };
 
 export function page(id: KindId, props: PageProps) {

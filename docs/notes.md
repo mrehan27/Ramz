@@ -11,7 +11,7 @@ live only in conversation.
 - **In daily use by the owner** (as of 2026-09-29). His shell is connected through the fenced
   block in `~/.zshrc`, synced, and kept current by auto sync. Diagnostics is on, so
   `~/Library/Logs/Ramz/panel.log` has been recording since 2026-09-24.
-- **`npm test` covers the logic, running it covers the rest.** 38 cases: the shell renderer
+- **`npm test` covers the logic, running it covers the rest.** 41 cases: the shell renderer
   and quoting, real bash and zsh loads, the rc block, sync state and auto sync, search filters,
   per-kind validation, sorting, and the import merge. `npm run typecheck` covers `electron/`
   too. Anything in the UI still has to be run: the selftest and the headless harnesses in
@@ -192,6 +192,14 @@ live only in conversation.
   param and works in every kind with placeholders. Chips, not a dropdown or `<datalist>`, for
   the panel reason in VariantPicker. Choices force the fill step even over a default, or a
   default would copy straight past the list.
+- **Scratch expires from the last sign of life, and is deleted for real.** The owner chose
+  deletion over archiving: a scratchpad that keeps everything is just clutter. Expiry is
+  derived (last edit or copy, plus the limit), never stored, so changing the limit needs no
+  migration, and a copy resetting the clock means hand resets are rare. Keep is its own flag
+  because pin already means "top of the list". Scratch reuses PromptsPage with a `kind` prop
+  rather than a near-copy, and has no archive, which would defeat the point.
+- **The main window refetches on focus** since the hourly sweep: before that, nothing
+  outside the window ever changed the store while it was open, except the panel's copy counts.
 
 ## Traps already hit (do not rediscover)
 

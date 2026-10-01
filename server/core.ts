@@ -17,6 +17,7 @@ import {
   type Entry, type EntryInput, type Prefs, type TagColor,
 } from "../shared/schema.ts";
 import { isExportable } from "../shared/kinds.ts";
+import { isExpired } from "../shared/scratch.ts";
 import {
   applyImport, buildTransfer, parseTransfer, planImport,
   type Conflict, type Resolution,
@@ -112,6 +113,19 @@ export async function markUsed(id: string) {
   return { id: entry.id, useCount: entry.useCount, lastUsedAt: entry.lastUsedAt };
 }
 
+/**
+ * Deletes scratch entries past their time, for real: that is the point of a
+ * scratchpad. Run at launch and hourly, so a laptop that sleeps through the
+ * moment still catches up.
+ */
+export async function sweepScratch(now = Date.now()) {
+  const store = await readStore();
+  const keep = store.entries.filter((e) => !isExpired(e, store.prefs.scratchDays, now));
+  const removed = store.entries.length - keep.length;
+  if (removed) await writeStore({ ...store, entries: keep });
+  return { removed };
+}
+
 export async function resetUsage() {
   const store = await readStore();
   let cleared = 0;
@@ -137,6 +151,8 @@ export async function updatePrefs(input: unknown): Promise<Prefs> {
   store.prefs = { ...store.prefs, ...parsed.data };
   await writeStore(store);
   if (parsed.data.autoSync) await afterChange();
+  // A shorter limit applies now rather than at the next hourly sweep; Settings warns first.
+  if (parsed.data.scratchDays !== undefined) await sweepScratch();
   return store.prefs;
 }
 
@@ -355,6 +371,7 @@ export async function runImport(payload: unknown) {
       body: "",
       asFunction: item.asFunction,
       pinned: false,
+      keep: false,
       order: 0,
       archived: false,
       exported: true,

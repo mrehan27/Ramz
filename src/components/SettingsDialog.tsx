@@ -1,5 +1,6 @@
 import { useState } from "react";
-import type { Prefs } from "../../shared/schema.ts";
+import type { Entry, Prefs } from "../../shared/schema.ts";
+import { DEFAULT_SCRATCH_DAYS, isExpired } from "../../shared/scratch.ts";
 import { api, type Config } from "../lib/api.ts";
 import { inApp, revealStore } from "../lib/bridge.ts";
 import { Button, Info, Modal, cx } from "./ui.tsx";
@@ -7,9 +8,11 @@ import { CopyButton } from "./CopyButton.tsx";
 import { useToast } from "./Toast.tsx";
 
 export function SettingsDialog({
-  config, onClose, onChanged, onTransfer,
+  config, entries, onClose, onChanged, onTransfer,
 }: {
   config: Config | null;
+  /** To say how many scratch entries a shorter limit would delete. */
+  entries: Entry[];
   onClose: () => void;
   onChanged: () => void;
   /** Opens the portable-file dialogs, which live above this one. */
@@ -17,6 +20,19 @@ export function SettingsDialog({
 }) {
   const [busy, setBusy] = useState(false);
   const toast = useToast();
+  const savedDays = config?.prefs.scratchDays ?? DEFAULT_SCRATCH_DAYS;
+  const [days, setDays] = useState(String(savedDays));
+
+  const saveDays = () => {
+    const n = Number(days);
+    if (!Number.isInteger(n) || n < 1 || n > 365) return setDays(String(savedDays));
+    if (n === savedDays) return;
+    const goes = entries.filter((e) => isExpired(e, n)).length;
+    if (goes && !confirm(`${goes} scratch ${goes === 1 ? "entry has" : "entries have"} gone unused for ${n} days or more, and will be deleted now.`)) {
+      return setDays(String(savedDays));
+    }
+    void savePref({ scratchDays: n });
+  };
 
   const savePref = async (patch: Partial<Prefs>) => {
     setBusy(true);
@@ -67,6 +83,29 @@ export function SettingsDialog({
             busy={busy}
             onChange={(autoSync) => savePref({ autoSync })}
           />
+        </section>
+
+        <section className="space-y-2 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+          <h3 className="font-semibold">Scratchpad</h3>
+          <label className="flex items-center gap-2">
+            <span>Delete a scratch after</span>
+            <input
+              type="number"
+              min={1}
+              max={365}
+              value={days}
+              disabled={busy}
+              onChange={(e) => setDays(e.target.value)}
+              onBlur={saveDays}
+              onKeyDown={(e) => e.key === "Enter" && saveDays()}
+              className="w-16 rounded-md border border-neutral-300 bg-white px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-950"
+            />
+            <span>days unused</span>
+          </label>
+          <p className="text-xs leading-relaxed text-neutral-400">
+            Counted from the last time you copied or edited it, so anything you keep using stays.
+            Deleted for real. Keep on a scratch stops it expiring.
+          </p>
         </section>
 
         {inApp && (

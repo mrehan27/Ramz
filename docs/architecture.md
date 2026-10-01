@@ -98,7 +98,17 @@ someone else's copy of it.
 `shared/query.ts` splits what you typed into kind filters, tag filters and the text to match.
 The kind words come from the registry (`id`, plural, singular, first letter, plus `keywords`),
 so a new kind is filterable the moment it exists, with nothing to add here. One word may name
-two kinds: `cmd:` is both aliases and snippets.
+two kinds: `cmd:` is both aliases and snippets. A first letter is the exception: it goes to the
+first kind in the registry that has it, so adding `scratch` did not take `s:` from snippets.
+
+## Scratch expiry
+
+Nothing about expiry is stored. `shared/scratch.ts` works it out from the latest of
+`createdAt`, `updatedAt` and `lastUsedAt` plus `prefs.scratchDays`, so changing the limit
+applies to everything already there, and Reset clock is an unchanged save. `keep` on the entry
+opts one out. `sweepScratch` in the core deletes what has expired; both ways in (the Electron
+app and the HTTP server) run it at launch and hourly, and `updatePrefs` runs it when the limit
+changes.
 
 ## Variants
 

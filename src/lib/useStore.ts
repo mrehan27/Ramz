@@ -48,6 +48,9 @@ export function useStore() {
   const toggleExport = useCallback((entry: Entry) => patch(entry, { exported: !entry.exported }), [patch]);
   const togglePin = useCallback((entry: Entry) => patch(entry, { pinned: !entry.pinned }), [patch]);
   const toggleArchive = useCallback((entry: Entry) => patch(entry, { archived: !entry.archived }), [patch]);
+  const toggleKeep = useCallback((entry: Entry) => patch(entry, { keep: !entry.keep }), [patch]);
+  /** Saving it unchanged is what resets a scratch's clock: expiry counts from the last edit. */
+  const renew = useCallback((entry: Entry) => patch(entry, {}), [patch]);
 
   /** Fire-and-forget: a failed count must never get in the way of a copy. */
   const markUsed = useCallback((id: string) => {
@@ -86,6 +89,6 @@ export function useStore() {
 
   return {
     entries, config, tagColors, error, loading, refresh,
-    save, remove, toggleExport, togglePin, toggleArchive, markUsed, reorder, setTagColor, renameTag, deleteTag,
+    save, remove, toggleExport, togglePin, toggleArchive, toggleKeep, renew, markUsed, reorder, setTagColor, renameTag, deleteTag,
   };
 }
